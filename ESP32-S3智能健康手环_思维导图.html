@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>基于 ESP32-S3 的智能健康手环 · 交互式思维导图</title>
+<style>
+:root[data-theme="dark"]{
+  --bg:#0B1220; --bg2:#08101D; --panel:#111C2F; --card:#152238; --card2:#1B2B45;
+  --line:#2A3B57; --txt:#F8FAFC; --sub:#94A3B8; --dim:#5B6B85;
+  --shadow:0 6px 22px rgba(0,0,0,.42); --bar:rgba(17,28,47,.92);
+  --hit:#FBBF24; --root:#F8FAFC;
+}
+:root[data-theme="light"]{
+  --bg:#EEF2F8; --bg2:#E4EAF3; --panel:#FFFFFF; --card:#FFFFFF; --card2:#F7FAFD;
+  --line:#CBD5E1; --txt:#0F172A; --sub:#475569; --dim:#94A3B8;
+  --shadow:0 4px 16px rgba(15,23,42,.10); --bar:rgba(255,255,255,.94);
+  --hit:#D97706; --root:#0F172A;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font-family:"Microsoft YaHei","PingFang SC","Hiragino Sans GB","Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--txt)}
+body{display:flex;flex-direction:column;overflow:hidden}
+
+/* ---------- 顶部工具栏 ---------- */
+.toolbar{flex:0 0 auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:10px 18px;background:var(--bar);border-bottom:1px solid var(--line);
+  backdrop-filter:blur(10px);z-index:20}
+.brand{display:flex;align-items:center;gap:10px;margin-right:6px}
+.brand .dot{width:11px;height:11px;border-radius:50%;background:#2DD4BF;box-shadow:0 0 10px #2DD4BF}
+.brand b{font-size:14px;letter-spacing:.4px}
+.brand span{font-size:11px;color:var(--dim)}
+.spacer{flex:1 1 auto}
+.btn{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--txt);
+  font:12px/1 inherit;padding:8px 12px;border-radius:8px;cursor:pointer;transition:.18s;white-space:nowrap}
+.btn:hover{border-color:#2DD4BF;color:#2DD4BF;transform:translateY(-1px)}
+.btn.primary{background:#2DD4BF;border-color:#2DD4BF;color:#06211D;font-weight:700}
+.btn.primary:hover{filter:brightness(1.1);color:#06211D}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{appearance:none;border:0;background:transparent;color:var(--sub);font:12px/1 inherit;
+  padding:8px 11px;cursor:pointer}
+.seg button.on{background:var(--card2);color:var(--txt);font-weight:700}
+.search{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);
+  border-radius:8px;padding:0 10px}
+.search input{border:0;background:transparent;color:var(--txt);font:12px/1 inherit;
+  padding:9px 4px;width:168px;outline:none}
+.search input::placeholder{color:var(--dim)}
+#hint{font-size:11px;color:var(--dim);min-width:74px;text-align:right}
+.zoomval{font-size:11px;color:var(--sub);min-width:38px;text-align:center}
+
+/* ---------- 画布 ---------- */
+.viewport{flex:1 1 auto;overflow:auto;position:relative;
+  background:radial-gradient(circle at 18% 12%,rgba(45,212,191,.055),transparent 42%),
+             radial-gradient(circle at 82% 78%,rgba(96,165,250,.05),transparent 45%),var(--bg)}
+.stage{position:relative;margin:0}
+.canvas{position:absolute;left:0;top:0;transform-origin:0 0;
+  padding:34px 60px 70px 34px;width:max-content}
+.links{position:absolute;left:0;top:0;z-index:0;pointer-events:none;overflow:visible}
+.links path{fill:none;stroke-width:2;opacity:.62;stroke-linecap:round}
+
+.branch{position:relative;z-index:1}
+.children{margin-left:46px;padding-top:6px;padding-bottom:2px;
+  border-left:0;display:flex;flex-direction:column;gap:6px}
+.children.collapsed{display:none}
+.node{position:relative;display:flex;align-items:flex-start;gap:9px;
+  background:var(--card);border:1px solid var(--line);border-left:4px solid var(--c,#2DD4BF);
+  border-radius:10px;padding:9px 12px;box-shadow:var(--shadow);cursor:default;
+  max-width:640px;min-width:170px;transition:border-color .18s,transform .18s,box-shadow .18s}
+.node.has-children{cursor:pointer}
+.node.has-children:hover{transform:translateX(3px);box-shadow:0 8px 26px rgba(0,0,0,.30)}
+.node .txt{flex:1 1 auto;min-width:0}
+.node .t{font-size:13px;font-weight:700;line-height:1.45;color:var(--txt);word-break:break-word}
+.node .d{font-size:11px;line-height:1.55;color:var(--sub);margin-top:3px;word-break:break-word}
+.node .tg{flex:0 0 auto;align-self:center;width:19px;height:19px;border-radius:5px;
+  border:1px solid var(--line);background:var(--card2);color:var(--sub);
+  font-size:11px;line-height:17px;text-align:center;user-select:none}
+.node .cnt{flex:0 0 auto;align-self:center;font-size:10px;color:var(--dim);
+  background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:2px 7px}
+.node.root{background:linear-gradient(120deg,var(--card2),var(--card));
+  border:1px solid var(--c);border-left:6px solid var(--c);padding:16px 20px;max-width:520px}
+.node.root .t{font-size:20px;letter-spacing:.5px}
+.node.root .d{font-size:12px;margin-top:6px}
+.node.l1{background:var(--panel)}
+.node.l1 .t{font-size:14px}
+.node.l3,.node.l4{background:var(--card2);border-left-width:3px}
+.node.l3 .t,.node.l4 .t{font-size:12px;font-weight:600}
+.node.hit{outline:2px solid var(--hit);outline-offset:2px;
+  box-shadow:0 0 0 5px rgba(251,191,36,.14),var(--shadow)}
+
+/* ---------- 页脚 ---------- */
+.foot{flex:0 0 auto;display:flex;gap:18px;align-items:center;flex-wrap:wrap;
+  padding:8px 18px;border-top:1px solid var(--line);background:var(--bar);
+  font-size:11px;color:var(--dim)}
+.foot b{color:var(--sub);font-weight:600}
+.foot .k{color:#2DD4BF;font-weight:700}
+.legend{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:4px}
+
+@media print{
+  .toolbar,.foot{display:none}
+  .viewport{overflow:visible}
+  body{overflow:visible;background:#fff}
+}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="brand"><span class="dot"></span>
+    <div><b>ESP32-S3 智能健康手环 · 思维导图</b><br>
+    <span>课程设计说明书（C++版）｜八章 + 三附录 · 点击节点展开 / 折叠</span></div>
+  </div>
+  <div class="spacer"></div>
+  <div class="search">
+    <span style="color:var(--dim);font-size:12px">⌕</span>
+    <input id="q" type="search" placeholder="搜索节点，如 引脚 / 计步 / 考核" autocomplete="off">
+  </div>
+  <span id="hint">共 0 个节点</span>
+  <div class="seg" id="themeSeg">
+    <button data-t="dark" class="on">深色</button>
+    <button data-t="light">浅色</button>
+  </div>
+  <button class="btn" id="expandAll">全部展开</button>
+  <button class="btn" id="collapseAll">全部折叠</button>
+  <div class="seg">
+    <button class="btn" id="zoomOut" style="border:0;border-radius:0">−</button>
+    <span class="zoomval" id="zoomVal">100%</span>
+    <button class="btn" id="zoomIn" style="border:0;border-radius:0">＋</button>
+  </div>
+  <button class="btn primary" id="fit">适应宽度</button>
+</div>
+
+<div class="viewport" id="viewport">
+  <div class="stage" id="stage">
+    <div class="canvas" id="canvas">
+      <svg class="links" id="links" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div id="tree"></div>
+    </div>
+  </div>
+</div>
+
+<div class="foot">
+  <span><b>操作：</b>点击带 ▾ 的节点展开 / 折叠 · 搜索自动展开命中路径 · 深浅主题可切换</span>
+  <span class="legend"><b>四大底线：</b>
+    <span><i style="background:#2DD4BF"></i>提醒能触发</span>
+    <span><i style="background:#60A5FA"></i>数据能显示</span>
+    <span><i style="background:#FBBF24"></i>断电不丢设置</span>
+    <span><i style="background:#FF5A6E"></i>连续运行不死机</span>
+  </span>
+  <span class="spacer"></span>
+  <span><b>平台：</b><span class="k">ESP32-S3 · FreeRTOS · LVGL · C++17</span> ｜ 80 学时 · 10 天 · 3~4 人/组</span>
+</div>
+
+<script>
+/* ===================== 思维导图数据 ===================== */
+const TREE = {
+  t:'基于 ESP32-S3 的智能健康手环',
+  d:'项目开发文档说明书（C++版）· 2026 年 10 月 · 含 DeepSeek AI 辅助开发过程记录',
+  c:[
+  {t:'一 · 引言', d:'项目背景 / 定位 / 学习成果 / 技术栈 / 特色', c:[
+    {t:'背景与教学痛点', d:'久坐危害明确 · 传统实验反馈链路长、结果不可见 · 需要可观测、可调试、可复现'},
+    {t:'项目概述', d:'手环终端（必做）+ PC 管理端 Qt 5（选做）；软硬结合综合实训'},
+    {t:'学习成果与技术栈', d:'表 1-1 / 表 1-2：ESP32-S3 · FreeRTOS · LVGL · C++17 · ESP-IDF 5.1+'},
+    {t:'项目特色 5 点', d:'直接反馈 / 四层解耦 / 量化验收 / 分层可裁剪 / AI 辅助过程可追溯'},
+    {t:'核心闭环：察觉—提醒—反馈', d:'连续 45 min 无有效活动 → 马达 2 s×3 + 全屏弹窗；已起身 / 稍后 10 min（最多 3 次）；阈值 30/45/60 min 写 NVS'},
+    {t:'教学安排', d:'80 学时（可裁剪 64）· 10 天集中实训 · 3~4 人 / 组 · 五类角色'},
+    {t:'四条底线', d:'提醒能触发 · 数据能显示 · 断电不丢设置 · 连续运行不死机（答辩追问重点）'}
+  ]},
+  {t:'二 · 功能介绍', d:'五组功能 / 六页交互 / 功能清单分期', c:[
+    {t:'五组功能', d:'运动感知 · 生理监测 · 交互显示 · 提醒与电源 · PC 管理（选做）'},
+    {t:'终端页面与交互（表 2-1）', d:'表盘 / 运动 / 心率血氧 / 体温 / 久坐 / 设置 + 全屏提醒弹窗'},
+    {t:'硬件清单（表 2-3）', d:'MPU6050 · MAX30102 · TMP117 · 4.3″ 800×480 IPS 屏 · 按键 · 马达 · ESP32-S3'},
+    {t:'功能清单映射（表 2-4）', d:'F-01～F-16 · P0 必做 / P1 按能力 / P2 加分，与实训阶段一一对应'},
+    {t:'必做 vs 选做', d:'必做＝计步 + 久坐提醒 + 表盘/提醒交互；选做＝心率血氧 / 体温 / 跌倒 / Wi-Fi 同步 / PC 端 / 新增三项 AI·HID 选做'},
+    {t:'新增三项选做（P2 加分）', d:'① PC 端接入大模型健康问答（FR-19）② 基于 PC 端已归档数据的 RAG 检索（FR-20）③ 手环操控鼠标 / BLE HID（FR-21）；依赖 FR-14/15→FR-20→FR-19，FR-21 独立，裁剪不影响四条底线', c:[
+      {t:'FR-19 大模型健康问答', d:'连入 PC 后接入本地/局域网大模型，提问健康情况；回答须附 RAG 来源、标注「教学演示，非医疗建议」；不出公网（NFR-11）'},
+      {t:'FR-20 RAG 检索', d:'语料仅来自 PC 端 SQLite records / events 已归档数据，按 (device_id, ts) 溯源；无归档数据时提示「暂无可检索数据」不编造'},
+      {t:'FR-21 手环操控鼠标', d:'IMU 手势 / 按键 → BLE HID 或自定义协议 → PC 鼠标；默认关 / 二次确认 / 一键断开 / 超时自动断开，不侵入计步与久坐主流程（NFR-12）'}
+    ]},
+    {t:'运行环境（表 2-2）', d:'USB-C 供电 · 2.4 GHz Wi-Fi · 教师机服务端（选做）'}
+  ]},
+  {t:'三 · 需求分析与系统设计', d:'全文重点章：需求 / 架构 / 流程 / 硬件 / 软件', c:[
+    {t:'需求分析', d:'用户角色（3-1）· 功能需求 FR-01～FR-21（3-2，新增 FR-19～21 选做）· 非功能需求 NFR-01～12（3-3，新增 NFR-11/12）· 约束与假设', c:[
+      {t:'量化约束', d:'100 步误计率 < 3%、漏计率 < 5% · 45 min 计时误差 ≤ 10 s · 连续 8 h 无死机 · 90 s 完成核心操作'},
+      {t:'生理指标（选做）', d:'心率 ≤ ±5 bpm · SpO₂ ≤ ±3%（需个体标定）'},
+      {t:'新增选做的可信与安全约束', d:'NFR-11 问答来源率 100% / 无公网出流量 / 无数据不编造 / 非医疗建议；NFR-12 鼠标默认关 / 二次确认 / 一键断开 / 不影响主流程'}
+    ]},
+    {t:'总体架构', d:'终端四层 + 服务端四层（选做），依赖单向向下，越层可静态检查', c:[
+      {t:'终端四层', d:'应用层 AppController / ScreenManager / 六 Screen；服务层 SensorHub / StepService / SedentaryService / VitalService / FallService / WearService / RecordStore / SyncClient；驱动层 MPU6050 / MAX30102 / TMP117 / FT6236 / ST7262；HAL I2CBus（互斥锁）/ SpiBus / Gpio / Ledc / Nvs'},
+      {t:'服务端四层', d:'接入层 SyncServer TCP / ClientSession / Dispatcher；业务层 User / Record / Alert Service；存储层 SQLite WAL；展示层 Qt Widgets + Qt Charts'},
+      {t:'越层检查三条', d:'ui 目录不出现 i2c_master_* API · driver 目录不出现 lv_* API · service 目录不直接操作 GPIO'},
+      {t:'部署拓扑', d:'教师机 192.168.10.10:9527 · 2.4 GHz Wi-Fi · deviceId HB-2026-G03-01 · 手环主动连接，密码不明文存 NVS'}
+    ]},
+    {t:'业务流程', d:'计步数据流 · 久坐状态机（表 3-4）· 生理测量 · 页面流转（表 3-5）· 数据同步'},
+    {t:'硬件设计', d:'表 3-6 资源分配 ～ 表 3-13 装调验收，含电气安全', c:[
+      {t:'引脚总表（表 3-11）', d:'I2C SDA=GPIO8 / SCL=GPIO9（400 kHz）；SPI SCK=12 / MOSI=11 / CS=10 / DC=14 / RST=15 / BL=16；触摸 INT=17 / RST=18；KEY=4；MOTOR_PWM=5；USB D−/D+=19/20'},
+      {t:'器件与 I2C 地址', d:'MPU6050 0x68 · MAX30102 0x57 · TMP117 0x48 · FT6236 触摸 0x38；原则「总线集中、模拟分离、启动引脚留空」'},
+      {t:'结构与供电（表 3-10 / 3-12）', d:'表体 110×70×12 mm · ≤ 85 g · 24 mm 硅胶表带 · USB-C VBUS 加 1 A 保险丝 · 不配电池、不做低功耗'},
+      {t:'显示带宽约束', d:'全屏 768 KB，SPI 80 MHz DMA 下约 90–110 ms（< 11 fps）→ 2×800×40 局部刷新；背光 LEDC 20 kHz PWM'}
+    ]},
+    {t:'软件设计', d:'核心类（3-14）· 任务（3-15）· 三大算法 · 界面（3-16）· 存储（3-17）· 协议（3-18）· 状态（3-19）· 数据模型（3-20）', c:[
+      {t:'FreeRTOS 任务（表 3-15）', d:'imu_task(5,核1,20 ms) · ppg_task(4,1,10 ms) · temp_task(2,1,1 s) · ui_task(3,0,16–33 ms) · record_task(1,0,60 s) · sync_task(2,0,5 min) · button_task(3,0,10 ms)'},
+      {t:'并发三不要', d:'不在中断调 LVGL 或动态分配内存 · 不持 I2C 锁等队列 · 不在 UI 任务做阻塞式文件写入'},
+      {t:'界面规范（表 3-16）', d:'#0B1220 / #152238 / #F8FAFC / #94A3B8；青绿 #2DD4BF 运动 · 红 #FF5A6E 心率 · 琥珀 #FBBF24 体温久坐；触摸 ≥ 48 px、按钮 ≥ 52 px、动画 180 ms'},
+      {t:'通信协议（表 3-18）', d:'TCP + JSON Lines（每行 ≤ 64 KB）· 幂等唯一键 (device_id, ts) · 指数退避 1/2/4/8 s · 错误码 4xx 客户端 / 5xx 服务端'},
+      {t:'本地存储（表 3-17）', d:'16 字节定长 MinuteRecord · LittleFS 环形缓冲 · 先数据后游标 · NVS 持久化设置'}
+    ]}
+  ]},
+  {t:'四 · 实现方案', d:'工程结构 / 六个设计模式 / 算法 / 测试', c:[
+    {t:'工程结构', d:'health-band/ → hal / driver / service / app + test / tools / docs'},
+    {t:'六个设计模式', d:'每个模式对应一个真实工程痛点，附 C++ 代码与教学要点', c:[
+      {t:'单例', d:'I2CBus 全局唯一 + 互斥锁，保证多任务 I2C 事务原子性'},
+      {t:'简单工厂', d:'SensorFactory::create(type) 用 switch 创建三传感器；新增类型需改工厂，是 OCP 已知缺口'},
+      {t:'策略', d:'virtual bool shouldAlert(const ActivityWindow& w, const Settings& s) const；Standard / Demo 两套判定可替换'},
+      {t:'状态', d:'enum class SitState { WearOff, Active, Sitting, Alerting, Snoozed, Quiet }；onEvent + transition 收敛 if-else'},
+      {t:'观察者', d:'EventBus 按 EventType 分发，解耦事件发布与订阅（同步回调为已知不足）'},
+      {t:'外观', d:'HealthBand 门面统一 start()/loop()，隐藏四层装配细节'}
+    ]},
+    {t:'传感器驱动与自检', d:'MPU6050 WHO_AM_I 0x68 · MAX30102 Part ID 0x15 · TMP117 Device ID 0x0117；上电先自检再入网'},
+    {t:'计步算法', d:'50 Hz 采样 → 零偏校准 + 一阶低通 → SVM 合加速度 → 5 s 滑窗 → μ+0.8σ 动态阈值 → 峰谷差 ≥ 0.6 g、间隔 250–2000 ms → 震动屏蔽 300 ms', c:[
+      {t:'采样率对比实验', d:'25 Hz 快走峰值被削平、漏计明显；50 Hz 覆盖 0.5–5 Hz 步态且 I2C 不过载（采用）；100 Hz 精度提升有限但功耗与总线翻倍'},
+      {t:'流水线设计', d:'采集与算法队列解耦削峰 · 跨任务传值不传指针 · UI 1 s 节流 · RecordStore 每分钟聚合写盘 · 数据回放可脱离硬件复现'}
+    ]},
+    {t:'心率血氧算法（选做）', d:'去直流 → 0.5–5 Hz 带通 → RR 计算 → SpO₂ ≈ 110 − 25R；PI ≥ 0.5% 判定信号质量'},
+    {t:'久坐提醒 / LVGL / 触摸按键', d:'状态机闭环 · 六页界面 · 20 ms 消抖、短按翻页 / 长按 2 s 熄屏 / 长按 5 s 回表盘'},
+    {t:'存储与可靠性', d:'16 B 定长记录 · 先数据后游标 · 看门狗 8 s 未喂狗打印回溯并重启 · I2C 连续 NACK 3 次重初始化 · 屏失败进最小系统模式'},
+    {t:'测试方案（表 4-1 / 4-2）', d:'单元 / 集成 / 系统 / 回归 / 验收；关键用例 T-01～T-10 覆盖计步精度、45 min 计时与断网补传'}
+  ]},
+  {t:'五 · 实训课程设计', d:'定位 / 80 学时 / 十天计划 / 考核', c:[
+    {t:'课程定位与目标（表 5-1）', d:'3~4 人 / 组 · 从寄存器自检到装配验收的完整工程链条'},
+    {t:'80 学时八阶段（表 5-2）', d:'P0 项目导入 4 · P1 硬件搭建 8 · P2 驱动与传感器 12 · P3 计步与久坐 14 · P4 完整界面 12 · P5 交互完善 12 · P6 联调测试 10 · P7 答辩总结 8 ＝ 80'},
+    {t:'分阶段任务', d:'P0～P7 每个阶段含教学目标 / 任务 / 知识点 / 交付验收；阶段验收通过才进入下一阶段'},
+    {t:'十天计划（表 5-4）', d:'D1 点屏 → D2 三传感器识别 → D3 驱动验收 → D4 计步闭环 → D5 久坐闭环 → D7 界面验收 → D8 可独立运行 → D9 测试验收 → D10 最终交付'},
+    {t:'角色与组织（表 5-3）', d:'组长 1 · 硬件 1 · 算法 1 · 界面 1 · 测试/文档 0~1；Git 按阶段打 tag + 代码评审'},
+    {t:'器材与软件（表 5-5 / 5-6）', d:'ESP32-S3 DevKitC-1 N16R8 ×10 组 · LVGL 8.3 · ESP-IDF 5.1+ · Qt 5.15（选做）· SQLite 3.40+ · Python 3.10+ · Saleae/PulseView'},
+    {t:'考核评价（表 5-7 / 5-8）', d:'功能实现 40 + 过程评价 30 + 文档 15 + 答辩 15 ＝ 100；评分细则合计 70 分（驱动 8 / 计步久坐 12 / 界面 8+8+4 / 文档 5+5+5 / 答辩 6+6+3）'},
+    {t:'排障 / 安全 / 拓展（表 5-9）', d:'先确认 3.3 V 与 GND，再看总线波形，最后怀疑代码；6 条安全合规；拓展创新方向'}
+  ]},
+  {t:'六 · 设计原则自评', d:'七条原则逐条对照 + 不足与改进', c:[
+    {t:'七条原则', d:'SRP 四层拆分 · OCP 策略/工厂/显示抽象 · LSP Screen 子类可替换 · DIP 依赖 IStore/PpgSensor 抽象 · ISP 拆分读写与数据源接口 · 合成复用 HealthBand 组合而非继承 · 迪米特 界面只与 AppController 交互'},
+    {t:'典型佐证', d:'换 MPU6050 为 ICM-42688 只改驱动 + 工厂（SRP/OCP）；MockSensor 替换真实传感器做单元测试（LSP/DIP）'},
+    {t:'五点不足与改进', d:'AppController 编排过多 · EventBus 同步 std::function 回调可能阻塞 · 全局单例降低可测性 · 同步协议无版本协商与加密（需 TLS + 签名）· 页面切换轻微掉帧（双缓冲 + DMA）'}
+  ]},
+  {t:'七 · 小结', d:'项目价值与能力迁移', c:[
+    {t:'项目价值', d:'每一行代码都有直接反馈：屏幕亮起、步数跳动、马达震动，而非串口里的 success'},
+    {t:'工程能力三台阶', d:'能跑 → 好用 → 可靠；分层架构、量化验收、故障演练把「做完」变成「做对」'},
+    {t:'改进空间', d:'4.3″ 屏形态偏离消费级 · 心率血氧精度依赖个体标定 · 跌倒误报率 · PC 端未形成「设备—用户—医生」闭环'}
+  ]},
+  {t:'八 · 难易度分析', d:'表 8-1 分级与分层教学建议', c:[
+    {t:'难度分级', d:'● 必须通过：环境/接线/驱动/计步/久坐状态机/测试答辩；◐ 按能力：显示触摸/PPG/跌倒/界面/存储同步；○ 加分：PC 端'},
+    {t:'整体判断', d:'中等偏难；必做闭环可在 P0～P3 内完成，选做项提供区分度'},
+    {t:'四大难点', d:'计步调参 · 久坐边界 · PPG 信号质量 · 4.3″ 屏刷新带宽'},
+    {t:'分层教学', d:'弱组只做 P0–P3；强组加 P4 PPG 精度、P5 连续运行、P6 PC 端同步；无论哪一档都必须通过四条底线'}
+  ]},
+  {t:'附录 A · 引脚速查', d:'表 A-1 模块接线 / 表 A-2 连接器与测试点', c:[
+    {t:'表 A-1 模块接线', d:'三传感器均接 3V3 / GND / SCL GPIO9 / SDA GPIO8；屏 GPIO10~16；触摸 0x38 接 8/9/17/18；按键 GPIO4（10 kΩ 上拉 + 100 nF 消抖）；马达 0830 + 2N7002 + 1N4148'},
+    {t:'表 A-2 连接器', d:'16pin USB-C（VBUS 加 1 A 保险丝）· 40pin 0.5 mm FPC · 2.54 mm 排针 · 1.0 mm 测试点（3V3/GND/SDA/SCL/KEY/PWM）'},
+    {t:'引脚避让', d:'避开 GPIO0/3/45/46（strapping）、33–37（八线 PSRAM）、19/20（原生 USB）、43/44（UART0）；GPIO6/7 预留'}
+  ]},
+  {t:'附录 B · 数据格式与协议', d:'16 字节记录 / JSON 消息 / 错误码', c:[
+    {t:'16 字节分钟记录（表 B-1）', d:'小端：ts 4B · steps 2B · active_s 2B · hr 1B · spo2 1B · temp 2B（0.01 ℃ 整数）· flags 1B · rsv 3B ＝ 16 B'},
+    {t:'JSON 消息示例', d:'type: AUTH / SYNC / ACK / PING / ALERT；每行 ≤ 64 KB；Unix 秒 UTC'},
+    {t:'错误码（表 B-2）', d:'4xx 客户端错误 · 5xx 服务端错误；幂等去重 (device_id, ts) 保证断网补传不重复'}
+  ]},
+  {t:'附录 C · DeepSeek AI 辅助开发', d:'过程记录与使用边界', c:[
+    {t:'表 C-1 过程记录', d:'按阶段记录提示词、生成内容与人工复核结论'},
+    {t:'三条使用经验', d:'先给约束再要代码 · 让 AI 解释取舍原因 · 用数据回放验证算法而非只信输出'},
+    {t:'三条使用边界', d:'硬件接线必须以实测波形为准 · 芯片 ID 与寄存器以数据手册为准 · 验收指标必须人工复跑，不接受「看起来对」'}
+  ]}
+]};
+
+/* ===================== 配色 ===================== */
+const PALETTE = {
+  dark:['#2DD4BF','#60A5FA','#FBBF24','#FF5A6E','#A78BFA','#4ADE80','#22D3EE','#FB923C','#F472B6','#A3E635','#818CF8'],
+  light:['#0D9488','#2563EB','#B45309','#E11D48','#7C3AED','#15803D','#0E7490','#C2410C','#BE185D','#4D7C0F','#4338CA']
+};
+let theme = localStorage.getItem('hb-theme') || 'dark';
+let scale = 1;
+
+const canvas = document.getElementById('canvas');
+const stage  = document.getElementById('stage');
+const svg    = document.getElementById('links');
+const treeEl = document.getElementById('tree');
+const viewport = document.getElementById('viewport');
+
+let counter = 0;
+const nodes = [];      // {id, el, text, toggleEl}
+const edges = [];      // {from, to}
+const byId  = {};
+
+/* ---------- 渲染 ---------- */
+function render(data, parentId, level, bi){
+  const id = 'n' + (counter++);
+  const branch = document.createElement('div');
+  branch.className = 'branch';
+
+  const el = document.createElement('div');
+  el.className = 'node' + (level===0 ? ' root' : level===1 ? ' l1' : level>=3 ? ' l3' : '');
+  el.dataset.id = id;
+  el.dataset.bi = bi;
+  if(parentId) el.dataset.parent = parentId;
+
+  const txt = document.createElement('div');
+  txt.className = 'txt';
+  const t = document.createElement('div');
+  t.className = 't'; t.textContent = data.t;
+  txt.appendChild(t);
+  if(data.d){
+    const d = document.createElement('div');
+    d.className = 'd'; d.textContent = data.d;
+    txt.appendChild(d);
+  }
+  el.appendChild(txt);
+  branch.appendChild(el);                       // 节点在前
+
+  let childrenEl = null, toggleEl = null;
+  if(data.c && data.c.length){
+    el.classList.add('has-children');
+    const cnt = document.createElement('span');
+    cnt.className = 'cnt'; cnt.textContent = data.c.length;
+    el.appendChild(cnt);
+    toggleEl = document.createElement('span');
+    toggleEl.className = 'tg'; toggleEl.textContent = '▾';
+    el.appendChild(toggleEl);
+
+    childrenEl = document.createElement('div');
+    childrenEl.className = 'children';
+    data.c.forEach((child, i) => {
+      childrenEl.appendChild(render(child, id, level+1, level===0 ? i : bi));
+    });
+    if(level >= 2) childrenEl.classList.add('collapsed');
+    branch.appendChild(childrenEl);           // 子节点容器在后
+  }
+
+  el.addEventListener('click', ev => {
+    ev.stopPropagation();
+    if(!childrenEl) return;
+    childrenEl.classList.toggle('collapsed');
+    syncToggles(); redraw();
+  });
+
+  if(parentId) edges.push({from:parentId, to:id});
+  const rec = {id, el, text:(data.t + ' ' + (data.d||'')), toggleEl, childrenEl};
+  nodes.push(rec); byId[id] = rec;
+  return branch;
+}
+
+const rootId = 'n0';
+(function build(){
+  // 根节点单独渲染，保证一级分支各自拿到颜色索引
+  const rootBranch = render(TREE, null, 0, -1);
+  treeEl.appendChild(rootBranch);
+  // 主题初始化
+  document.documentElement.dataset.theme = theme;
+  document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('on', b.dataset.t===theme));
+  applyColors();
+  syncToggles();
+  document.getElementById('hint').textContent = '共 ' + nodes.length + ' 个节点';
+  requestAnimationFrame(()=>{ redraw(); });
+})();
+
+/* ---------- 主题 ---------- */
+function applyColors(){
+  for(const n of nodes){
+    const bi = +n.el.dataset.bi;
+    const col = bi < 0
+      ? getComputedStyle(document.documentElement).getPropertyValue('--root').trim()
+      : PALETTE[theme][bi % PALETTE[theme].length];
+    n.el.style.setProperty('--c', col);
+  }
+}
+document.querySelectorAll('#themeSeg button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    theme = b.dataset.t;
+    localStorage.setItem('hb-theme', theme);
+    document.documentElement.dataset.theme = theme;
+    document.querySelectorAll('#themeSeg button').forEach(x=>x.classList.toggle('on', x===b));
+    applyColors(); redraw();
+  });
+});
+
+/* ---------- 折叠状态 ---------- */
+function syncToggles(){
+  for(const n of nodes){
+    if(n.toggleEl && n.childrenEl)
+      n.toggleEl.textContent = n.childrenEl.classList.contains('collapsed') ? '▸' : '▾';
+  }
+}
+function setAll(collapsed){
+  for(const n of nodes){
+    if(n.el.classList.contains('root') || !n.childrenEl) continue;
+    n.childrenEl.classList.toggle('collapsed', collapsed);
+  }
+  syncToggles(); redraw();
+}
+function expandAncestors(el){
+  let p = el.dataset.parent;
+  while(p && byId[p]){
+    const ch = byId[p].childrenEl;
+    if(ch) ch.classList.remove('collapsed');
+    p = byId[p].el.dataset.parent;
+  }
+  syncToggles();
+}
+document.getElementById('expandAll').addEventListener('click', ()=>setAll(false));
+document.getElementById('collapseAll').addEventListener('click', ()=>setAll(true));
+
+/* ---------- 缩放 ---------- */
+function applyScale(){
+  canvas.style.transform = 'scale(' + scale + ')';
+  document.getElementById('zoomVal').textContent = Math.round(scale*100) + '%';
+  redraw();
+}
+document.getElementById('zoomIn').addEventListener('click', ()=>{ scale=Math.min(1.6, +(scale+0.1).toFixed(2)); applyScale(); });
+document.getElementById('zoomOut').addEventListener('click', ()=>{ scale=Math.max(0.5, +(scale-0.1).toFixed(2)); applyScale(); });
+document.getElementById('fit').addEventListener('click', ()=>{
+  scale = Math.max(0.5, Math.min(1, (viewport.clientWidth - 30) / Math.max(1, canvas.scrollWidth)));
+  scale = +scale.toFixed(2); applyScale();
+  viewport.scrollTo({left:0, top:0, behavior:'smooth'});
+});
+
+/* ---------- 连线 ---------- */
+function visible(el){ return el.getClientRects().length > 0; }
+function redraw(){
+  const W = canvas.scrollWidth, H = canvas.scrollHeight;
+  stage.style.width  = (W * scale) + 'px';
+  stage.style.height = (H * scale) + 'px';
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  const cr = canvas.getBoundingClientRect();
+  let out = '';
+  for(const e of edges){
+    const a = byId[e.from].el, b = byId[e.to].el;
+    if(!visible(a) || !visible(b)) continue;
+    const ar = a.getBoundingClientRect(), br = b.getBoundingClientRect();
+    const x1 = (ar.right - cr.left) / scale;
+    const y1 = ((ar.top + ar.bottom)/2 - cr.top) / scale;
+    const x2 = (br.left - cr.left) / scale;
+    const y2 = ((br.top + br.bottom)/2 - cr.top) / scale;
+    const mx = (x1 + x2) / 2;
+    const col = getComputedStyle(b).getPropertyValue('--c').trim() || '#2DD4BF';
+    out += '<path d="M ' + x1 + ' ' + y1 + ' C ' + mx + ' ' + y1 + ', ' + mx + ' ' + y2 + ', ' + x2 + ' ' + y2 + '" stroke="' + col + '"/>';
+  }
+  svg.innerHTML = out;
+}
+
+/* ---------- 搜索 ---------- */
+const q = document.getElementById('q');
+q.addEventListener('input', ()=>{
+  const s = q.value.trim().toLowerCase();
+  for(const n of nodes) n.el.classList.remove('hit');
+  if(!s){ document.getElementById('hint').textContent = '共 ' + nodes.length + ' 个节点'; redraw(); return; }
+  let count = 0, first = null;
+  for(const n of nodes){
+    if(n.text.toLowerCase().indexOf(s) >= 0){
+      n.el.classList.add('hit'); count++;
+      if(!first) first = n.el;
+      expandAncestors(n.el);
+    }
+  }
+  document.getElementById('hint').textContent = '匹配 ' + count + ' 个节点';
+  redraw();
+  if(first) setTimeout(()=>first.scrollIntoView({behavior:'smooth', block:'center', inline:'center'}), 60);
+});
+q.addEventListener('keydown', ev=>{ if(ev.key==='Escape'){ q.value=''; q.dispatchEvent(new Event('input')); } });
+
+/* ---------- 自适应 ---------- */
+window.addEventListener('resize', ()=>redraw());
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>redraw());
+new ResizeObserver(()=>redraw()).observe(treeEl);
+</script>
+</body>
+</html>

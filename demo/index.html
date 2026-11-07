@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智能健康手环 · 交互 Demo UI 展示 · 方案 B</title>
+<style>
+:root{
+  --bg:#000000; --card:#141414; --card2:#222222; --track:#303034; --scr:#1A1A1A;
+  --text:#FFFFFF; --muted:#A6A6AD;
+  --lime:#A5F63B; --red:#FF587D; --amber:#FFBC4C; --ink:#152105;
+  --line:rgba(255,255,255,.09); --shadow:0 18px 50px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:"Noto Sans SC","Microsoft YaHei","PingFang SC",system-ui,sans-serif}
+body{min-height:100vh;padding:18px 22px 90px;background-image:radial-gradient(1000px 460px at 18% -12%,rgba(165,246,59,.07),transparent 60%)}
+a{color:var(--lime)}
+button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+input{font-family:inherit}
+
+/* ---------- 顶栏 ---------- */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding-bottom:16px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--lime),#6DA824);display:grid;place-items:center;font-weight:800;font-size:19px;color:var(--ink);letter-spacing:.5px;box-shadow:0 8px 24px rgba(165,246,59,.22)}
+.brand h1{font-size:20px;font-weight:700;letter-spacing:.3px}
+.brand p{font-size:12.5px;color:var(--muted);margin-top:3px}
+.top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tag{font-size:12px;color:var(--lime);border:1px solid rgba(165,246,59,.4);background:rgba(165,246,59,.07);padding:7px 12px;border-radius:999px;white-space:nowrap}
+.tag.plain{color:var(--muted);border-color:var(--line);background:transparent}
+.btn{height:40px;padding:0 16px;border-radius:10px;font-size:13.5px;font-weight:600;border:1px solid var(--line);background:var(--card);color:var(--text);transition:.15s}
+.btn:hover{border-color:rgba(255,255,255,.4);transform:translateY(-1px)}
+.btn.primary{background:var(--lime);color:var(--ink);border-color:var(--lime)}
+.btn.primary:hover{background:#B8FF5C}
+.btn.ghost{background:transparent}
+
+/* ---------- 主布局 ---------- */
+.main{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:20px;align-items:start}
+.stage{background:linear-gradient(180deg,rgba(26,26,26,.7),rgba(0,0,0,.2));border:1px solid var(--line);border-radius:18px;padding:14px 16px 16px;min-width:0}
+.stage-head,.gallery h2,.opt-section h2{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.stage-head h2{font-size:15px;font-weight:700}
+.stage-head span,.gallery h2 small,.opt-section h2 small{font-size:12px;color:var(--muted);font-weight:400}
+.device-wrap{display:flex;justify-content:center;align-items:flex-start;overflow:hidden;position:relative}
+.device-scale{width:800px;transform-origin:top center;flex:0 0 auto}
+.band{width:300px;margin:0 auto;background:linear-gradient(90deg,#0D0D0D,#242424 18%,#303030 50%,#242424 82%,#0D0D0D);border-left:1px solid rgba(255,255,255,.05);border-right:1px solid rgba(0,0,0,.5)}
+.band-top{height:44px;border-radius:22px 22px 8px 8px;box-shadow:inset 0 -8px 14px rgba(0,0,0,.5)}
+.band-bottom{height:44px;border-radius:8px 8px 22px 22px;box-shadow:inset 0 8px 14px rgba(0,0,0,.5)}
+.device{position:relative;width:800px;height:480px;margin:0 auto;border-radius:58px;background:linear-gradient(145deg,#2C2C2C,#080808 60%,#1C1C1C);padding:14px;border:1px solid rgba(255,255,255,.10);box-shadow:0 30px 70px rgba(0,0,0,.75),inset 0 2px 3px rgba(255,255,255,.10)}
+.device::before{content:"";position:absolute;inset:6px;border-radius:52px;border:1px solid rgba(0,0,0,.6);pointer-events:none}
+.device.shake{animation:shake .16s linear 3}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.crown{position:absolute;right:2px;top:220px;width:9px;height:54px;border-radius:5px;background:linear-gradient(180deg,#3D3D3D,#161616);box-shadow:-2px 0 5px rgba(0,0,0,.6)}
+.device-shell{position:relative}
+.screen{position:relative;width:772px;height:452px;border-radius:46px;overflow:hidden;background:#000000;border:1px solid rgba(0,0,0,.8);display:flex;flex-direction:column;filter:brightness(1)}
+.screen::after{content:"";position:absolute;inset:0;border-radius:46px;box-shadow:inset 0 0 40px rgba(0,0,0,.55);pointer-events:none;z-index:90}
+
+/* ---------- 状态栏（UI-00） ---------- */
+.statusbar{height:46px;flex:0 0 46px;display:flex;align-items:center;gap:12px;padding:0 26px;color:var(--muted);background:#000000;z-index:2}
+.statusbar .sb-time{color:var(--text);font-weight:600;font-size:20px;letter-spacing:.5px;font-variant-numeric:tabular-nums}
+.statusbar .sb-date{font-size:18px}
+.statusbar .sb-center{margin:0 auto;display:flex;align-items:center;gap:8px;font-size:18px}
+.statusbar .sb-center.warn{color:var(--amber)}
+.statusbar .sb-right{display:flex;align-items:center;gap:8px;font-size:18px}
+
+/* ---------- 页面骨架 ---------- */
+.pages{position:relative;flex:1;min-height:0;overflow:hidden}
+.page{position:absolute;inset:0;padding:4px 24px 0;display:flex;flex-direction:column}
+.page.fade{animation:fade .18s ease-out}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.phead{height:42px;flex:0 0 42px;display:flex;align-items:center}
+.phead h2{font-size:28px;font-weight:600;letter-spacing:.5px;line-height:1}
+.phead .sub{margin-left:auto;font-size:18px;color:var(--muted)}
+.pbody{flex:1;min-height:0;padding-top:4px;display:flex;flex-direction:column;gap:8px}
+.pfoot{flex:0 0 30px;display:flex;align-items:center;color:var(--muted);font-size:16px}
+.pfoot .ui-id{width:110px;font-size:16px}
+.pfoot .dots{display:flex;gap:13px;margin:0 auto}
+.pfoot .dots i{width:9px;height:9px;border-radius:50%;background:var(--track);display:block}
+.pfoot .dots i.on{background:var(--lime)}
+.pfoot .nav{width:170px;text-align:right;font-size:18px}
+.page-hint{text-align:center;font-size:18px;color:var(--muted);margin-top:auto;padding-bottom:2px}
+.flash{animation:flash 1s ease-out 2;border-radius:12px}
+@keyframes flash{0%,100%{box-shadow:0 0 0 0 rgba(165,246,59,0)}50%{box-shadow:0 0 0 6px rgba(165,246,59,.32)}}
+
+/* ---------- 方案 B 通用组件 ---------- */
+.scr-card{background:var(--scr);border-radius:22px}
+.lbl{font-size:20px;color:var(--muted)}
+.val{font-size:40px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1}
+.unit{font-size:20px;color:var(--muted)}
+.ok-text{font-size:18px;color:var(--lime)}
+.btn-lime{height:56px;border-radius:16px;background:var(--lime);color:var(--ink);font-size:20px;font-weight:600;display:grid;place-items:center;transition:.15s;width:100%}
+.btn-lime:hover{background:#B8FF5C}
+.btn-lime.sm{height:44px;font-size:17px;border-radius:14px}
+.btn-dark{height:56px;border-radius:16px;background:var(--track);color:var(--text);font-size:20px;font-weight:600;display:grid;place-items:center;transition:.15s;width:100%}
+.btn-dark:hover{background:#414146}
+.btn-red{height:56px;border-radius:16px;background:var(--red);color:#FFFFFF;font-size:20px;font-weight:600;display:grid;place-items:center;transition:.15s;width:100%}
+.btn-red:hover{background:#FF7694}
+.seg{display:flex;gap:10px}
+.seg button{flex:1;height:52px;border-radius:14px;background:var(--track);font-size:20px;font-weight:600;color:var(--text);transition:.15s}
+.seg button.on{background:var(--lime);color:var(--ink)}
+.sw{display:flex;align-items:center;gap:10px;height:40px;padding:0 12px;border-radius:12px;background:var(--track);font-size:16px;color:var(--muted);white-space:nowrap}
+.sw i{width:38px;height:22px;border-radius:99px;background:#4A4A50;position:relative;transition:.2s;flex:0 0 auto}
+.sw i::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.2s}
+.sw.on{color:var(--lime)}
+.sw.on i{background:var(--lime)}
+.sw.on i::after{left:19px;background:var(--ink)}
+.ring{position:relative;flex:0 0 auto}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-linecap:round}
+.ring .ring-bg{stroke:var(--track);stroke-width:19}
+.ring .ring-fg{stroke:var(--lime);stroke-width:19;filter:drop-shadow(0 0 6px rgba(165,246,59,.35))}
+.ring-txt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center}
+.ring-txt .t{font-size:20px;color:var(--muted)}
+.ring-txt b{font-size:72px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+.ring-txt .s{font-size:18px;color:var(--lime)}
+.explain{font-size:14px;color:var(--muted);line-height:1.6;background:rgba(255,255,255,.04);border-left:3px solid var(--lime);padding:8px 12px;border-radius:0 8px 8px 0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chips .cap{font-size:13px;color:var(--muted);margin-right:2px}
+.chip{padding:5px 10px;border-radius:9px;background:var(--track);color:var(--muted);font-size:13px;transition:.15s}
+.chip:hover{color:var(--text)}
+.chip.on{background:var(--lime);color:var(--ink);font-weight:600}
+.mini-btns{display:flex;gap:8px;flex-wrap:wrap}
+.mini-btn{height:36px;padding:0 12px;border-radius:10px;background:var(--track);font-size:13px;color:var(--muted)}
+.mini-btn:hover{background:#414146;color:var(--text)}
+.mini-btn.lime{background:rgba(165,246,59,.14);color:var(--lime)}
+
+/* 表盘 UI-01 */
+.watch-grid{display:grid;grid-template-columns:250px 1fr;gap:14px;flex:1;min-height:0;align-items:center}
+.watch-grid .ring{width:220px;height:220px;margin:0 auto}
+.watch-grid .ring-txt b{font-size:64px}
+.w-stats{display:flex;flex-direction:column;justify-content:center}
+.w-stat{display:flex;align-items:baseline;gap:12px;padding:11px 4px;border-bottom:2px solid var(--track)}
+.w-stat .lbl{width:110px;flex:0 0 auto}
+.w-stat .val{margin-left:auto}
+.w-stat .unit{width:60px;text-align:right;flex:0 0 auto}
+.w-cards{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.w-card{background:var(--scr);border-radius:22px;padding:12px 18px;display:flex;align-items:center;gap:14px;min-height:88px}
+.w-card .wc-icon{flex:0 0 auto}
+.w-card .wc-lbl{font-size:18px;color:var(--muted)}
+.w-card .wc-val{font-size:40px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.w-card .wc-val small{font-size:20px;color:var(--muted);font-weight:400}
+.w-card .wc-ok{font-size:18px;color:var(--lime);text-align:right;margin-left:auto}
+
+/* 运动 UI-02 */
+.sport-grid{display:grid;grid-template-columns:200px 1fr;gap:14px;flex:1;min-height:0}
+.sport-grid .ring{width:180px;height:180px;margin:0 auto}
+.sport-grid .ring-txt b{font-size:48px}
+.sport-grid .ring-txt .t{font-size:18px}
+.sport-grid .ring-txt .s{font-size:16px}
+.sport-panel{background:var(--scr);border-radius:20px;padding:12px 16px;display:flex;flex-direction:column;gap:8px;min-height:0}
+.sport-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sport-stats>div{display:flex;flex-direction:column;gap:2px}
+.sport-stats .lbl{font-size:18px}
+.sport-stats .val{font-size:36px}
+.chart-card{background:rgba(255,255,255,.03);border-radius:14px;padding:10px 14px 6px;flex:1;min-height:0;display:flex;flex-direction:column}
+.chart-card .cap{font-size:18px;color:var(--muted)}
+.bars{display:flex;align-items:flex-end;gap:11px;flex:1;min-height:60px;padding-top:6px}
+.bars i{flex:1;border-radius:6px 6px 0 0;background:var(--track);display:block;min-height:8px}
+.bars i.on{background:var(--lime)}
+.bar-days{display:flex;gap:11px;margin-top:3px}
+.bar-days span{flex:1;text-align:center;font-size:16px;color:var(--muted)}
+.sport-foot{display:flex;align-items:center;gap:10px}
+.sport-foot .hint{font-size:16px;color:var(--muted);line-height:1.35;flex:1}
+.sport-foot .btn-dark{width:152px;flex:0 0 auto;height:50px;font-size:18px}
+
+/* 心率 / 体温 五态 */
+.measure-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;flex:1;min-height:0}
+.meas-card{background:var(--scr);border-radius:24px;padding:14px 22px;display:flex;flex-direction:column;min-height:0}
+.meas-card .lbl{font-size:22px}
+.meas-card .num{font-size:84px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;color:var(--red);margin-top:auto}
+.meas-card .num small{font-size:28px;color:var(--muted);font-weight:400}
+.meas-card .ok-text{margin-top:8px}
+.meas-foot{display:flex;align-items:center;gap:14px}
+.meas-foot .last{font-size:20px;color:var(--muted);flex:1}
+.meas-foot .btn-lime{width:228px;flex:0 0 auto}
+.state-hero{background:var(--scr);border-radius:24px;flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:14px 18px}
+.state-hero .big{font-size:44px;font-weight:600;line-height:1.1}
+.state-hero .big.amber{color:var(--amber)}
+.state-hero .big.lime{color:var(--lime)}
+.state-hero .big.white{color:var(--text)}
+.state-hero .sub{font-size:18px;color:var(--muted)}
+.state-hero .sub.amber{color:var(--amber)}
+.state-hero .prog{width:70%;height:7px;border-radius:99px;background:var(--track);overflow:hidden;margin-top:2px}
+.state-hero .prog i{display:block;height:100%;background:var(--lime);border-radius:99px;transition:width .3s}
+.state-hero .btn-lime{width:240px;height:46px;font-size:18px;margin-top:4px}
+.temp-hero{background:var(--scr);border-radius:24px;flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:14px}
+.temp-hero .num{font-size:96px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+.temp-hero .num small{font-size:36px;color:var(--muted);font-weight:400}
+.temp-hero .ok-text{font-size:20px}
+
+/* 久坐 UI-05 */
+.sit-grid{display:grid;grid-template-columns:1fr 280px;gap:14px;flex:1;min-height:0}
+.sit-count{background:var(--scr);border-radius:24px;padding:12px 22px;display:flex;flex-direction:column;justify-content:center}
+.sit-count .lbl{font-size:22px}
+.sit-count .clock{font-size:76px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.sit-count .sub{font-size:20px;color:var(--muted);margin-top:4px}
+.sit-right{display:flex;flex-direction:column;gap:8px}
+.sit-stat{background:var(--scr);border-radius:22px;padding:10px 18px;flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px}
+.sit-stat .row{display:flex;align-items:baseline;justify-content:space-between;font-size:20px;color:var(--muted)}
+.sit-stat .row b{font-size:40px;color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+.sit-stat .row b small{font-size:20px;color:var(--muted);font-weight:400}
+.sit-stat .row.amber b{color:var(--amber);font-size:26px}
+.sit-right .btn-lime{height:50px;font-size:18px}
+.sit-demo{display:flex;align-items:center;gap:12px;background:var(--scr);border-radius:18px;padding:6px 16px}
+.sit-demo .t{font-size:20px;color:var(--text)}
+.sit-demo .d{font-size:16px;color:var(--muted);flex:1}
+.sit-tip{font-size:15px;color:var(--amber);min-height:18px}
+
+/* 设置 UI-06 */
+.set-body{flex:1;min-height:0;display:flex;gap:14px}
+.set-main{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--track) transparent}
+.set-main::-webkit-scrollbar{width:4px}.set-main::-webkit-scrollbar-thumb{background:var(--track);border-radius:9px}
+.set-row{display:flex;align-items:center;gap:14px;background:var(--scr);border-radius:18px;padding:10px 18px;min-height:56px}
+.set-row .k{font-size:22px;flex:0 0 150px}
+.set-row .k small{display:block;font-size:16px;color:var(--muted);font-weight:400}
+.set-row .v{margin-left:auto;font-size:20px;color:var(--lime);font-variant-numeric:tabular-nums;white-space:nowrap}
+.set-row .seg{flex:1}
+.set-row .seg button{height:48px;font-size:18px}
+.set-row .sw{margin-left:auto}
+.bri-bar{flex:1;height:8px;border-radius:99px;background:var(--track);overflow:hidden;margin:0 10px}
+.bri-bar i{display:block;height:100%;background:var(--lime);border-radius:99px}
+.bri-mini{display:flex;gap:6px}
+.bri-mini button{width:34px;height:34px;border-radius:9px;background:var(--track);font-size:18px;font-weight:700}
+.set-scrollbar{width:4px;border-radius:2px;background:var(--track);position:relative;flex:0 0 auto;margin:6px 0}
+.set-scrollbar i{position:absolute;left:0;width:4px;height:50%;border-radius:2px;background:var(--lime);transition:top .2s}
+.set-half{display:flex;gap:8px;align-items:center}
+.set-half .cap{font-size:15px;color:var(--muted);margin-right:4px}
+.set-half button{padding:6px 14px;border-radius:9px;background:var(--track);font-size:14px;color:var(--muted)}
+.set-half button.on{background:var(--lime);color:var(--ink);font-weight:600}
+.set-note{font-size:15px;color:var(--lime)}
+.set-link{font-size:16px;color:var(--muted);line-height:1.5}
+
+/* ---------- 覆盖层：久坐提醒 / 系统确认 ---------- */
+.alert-layer,.dialog-layer{position:absolute;inset:0;z-index:60;display:grid;place-items:center;background:rgba(0,0,0,.78);backdrop-filter:blur(3px);animation:fade .18s}
+.alert-card,.dialog-card{width:544px;background:var(--scr);border-radius:26px;padding:22px 28px;text-align:center;box-shadow:var(--shadow)}
+.alert-card .ico,.dialog-card .ico{display:grid;place-items:center;margin:0 auto 10px}
+.alert-card h2,.dialog-card h2{font-size:28px;font-weight:600;margin-bottom:8px}
+.alert-card p,.dialog-card p{font-size:20px;color:var(--muted);line-height:1.55}
+.alert-card p.amber,.dialog-card p.amber{color:var(--amber);font-size:18px;margin-top:8px}
+.alert-card .vib,.dialog-card .vib{margin:10px auto 4px;font-size:14px;color:var(--muted);border:1px dashed var(--line);border-radius:9px;padding:6px;display:inline-block}
+.dlg-btns{display:flex;gap:24px;margin-top:20px}
+.dlg-btns button{flex:1;height:56px;border-radius:16px;font-size:20px;font-weight:600;transition:.15s}
+.dlg-cancel{background:var(--track);color:var(--text)}
+.dlg-ok{background:var(--lime);color:var(--ink)}
+.dlg-ok.red{background:var(--red);color:#fff}
+.dialog-card p.small{font-size:18px}
+.dlg-note{font-size:18px;color:var(--muted);margin-top:14px}
+
+/* ---------- toast / 熄屏 ---------- */
+.toast{position:absolute;left:50%;bottom:52px;transform:translate(-50%,14px);z-index:70;background:var(--lime);color:var(--ink);font-size:14px;font-weight:650;padding:11px 20px;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;box-shadow:0 10px 30px rgba(0,0,0,.5);white-space:nowrap}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.screen-off{position:absolute;inset:0;z-index:85;background:#000000;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer}
+.screen-off.show{display:flex}
+.screen-off b{font-size:62px;font-weight:600;color:#2C2C2C;font-variant-numeric:tabular-nums}
+.screen-off span{font-size:13px;color:#3A3A3A}
+.screen-off small{font-size:11px;color:#2A2A2A;margin-top:18px}
+
+/* ---------- 舞台下方控件 ---------- */
+.stage-foot{text-align:center;font-size:12px;color:var(--muted);margin:10px 0 12px}
+.hw-controls{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.hw-controls button{min-height:40px;padding:0 13px;border-radius:9px;background:var(--card);border:1px solid var(--line);font-size:12.5px;color:var(--muted);transition:.15s}
+.hw-controls button:hover{color:var(--lime);border-color:var(--lime)}
+
+/* ---------- 右侧栏 ---------- */
+.side{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px 16px}
+.card h3{font-size:13.5px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card h3::before{content:"";width:3px;height:14px;border-radius:2px;background:var(--lime)}
+.state-line{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,.08)}
+.state-line:last-of-type{border-bottom:0}
+.state-line span{color:var(--muted)}
+.state-line b{font-variant-numeric:tabular-nums;font-weight:700}
+.state-line b.hl{color:var(--amber)}
+.sm-graph{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px}
+.sm-g{font-size:10.5px;text-align:center;padding:7px 2px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--muted);font-family:ui-monospace,Consolas,monospace}
+.sm-g.on{background:rgba(165,246,59,.16);border-color:var(--lime);color:var(--lime);font-weight:700}
+.sm-arrow{font-size:10.5px;color:var(--muted);margin-top:9px;line-height:1.6}
+.sim-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.sim-grid button{min-height:40px;border-radius:9px;background:var(--card2);border:1px solid var(--line);font-size:12px;font-weight:600;transition:.15s}
+.sim-grid button:hover{border-color:var(--lime);color:var(--lime)}
+.sim-grid button.wide{grid-column:1/-1}
+.log{height:150px;overflow:auto;font-size:11.5px;line-height:1.65;font-family:ui-monospace,Consolas,monospace;color:var(--muted);padding-right:4px}
+.log div{display:flex;gap:7px;border-bottom:1px solid rgba(255,255,255,.05);padding:2px 0}
+.log time{color:#6A6A70;flex:0 0 auto}
+.log em{font-style:normal;color:var(--text)}
+.log::-webkit-scrollbar{width:5px}.log::-webkit-scrollbar-thumb{background:var(--track);border-radius:9px}
+.design p{font-size:12px;color:var(--muted);line-height:1.75}
+.design .swatches{display:flex;gap:7px;margin:10px 0;flex-wrap:wrap}
+.design .sw{width:52px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,.12);font-size:9px;display:grid;place-items:center;font-weight:700}
+.design kbd{background:var(--card2);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;font-size:11px;color:var(--text)}
+
+/* ---------- 六页总览 ---------- */
+.gallery{margin-top:22px}
+.gallery h2{font-size:16px;font-weight:700}
+.gallery-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.gcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;cursor:pointer;transition:.18s;position:relative;overflow:hidden;min-height:132px;text-align:left}
+.gcard:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.4)}
+.gcard.on{border-color:var(--lime);box-shadow:0 0 0 2px rgba(165,246,59,.16)}
+.gcard .gno{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.gcard .gname{font-size:15px;font-weight:700;margin:3px 0 10px}
+.gcard .gbig{font-size:27px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.gcard .gsub{font-size:11px;color:var(--muted);margin-top:6px}
+.gcard .gbar{position:absolute;left:0;right:0;bottom:0;height:3px}
+.gcard .gtag{position:absolute;right:9px;top:10px;font-size:9.5px;padding:2px 6px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
+.gcard .gtag.r{color:var(--lime);border-color:rgba(165,246,59,.35)}
+
+/* ---------- PC 管理端 ---------- */
+.opt-section{margin-top:22px}
+.opt-section h2{font-size:16px;font-weight:700}
+.fr-tags{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}
+.fr-tags span{font-size:10.5px;padding:4px 10px;border-radius:99px;border:1px solid rgba(255,188,76,.35);color:var(--amber);background:rgba(255,188,76,.05)}
+.pc-frame{position:relative;width:100%;overflow:hidden;border-radius:16px;border:1px solid var(--line);background:#000}
+.pc-canvas{position:absolute;top:0;left:0;width:1440px;height:900px;transform-origin:top left;display:flex;flex-direction:column}
+.pc-top{height:72px;flex:0 0 72px;display:flex;align-items:center;gap:14px;padding:0 28px;border-bottom:1px solid var(--line)}
+.pc-brand{font-size:24px;font-weight:600}
+.pc-brand-sub{font-size:22px;color:var(--muted)}
+.pc-conn{margin-left:auto;font-size:20px;color:var(--lime)}
+.pc-body{display:flex;flex:1;min-height:0}
+.pc-nav{width:250px;flex:0 0 250px;border-right:1px solid var(--line);padding:52px 0 0 38px;position:relative;display:flex;flex-direction:column;gap:36px}
+.pc-nav a{font-size:22px;color:var(--muted);cursor:pointer;transition:.15s}
+.pc-nav a:hover{color:var(--text)}
+.pc-nav a.on{color:var(--lime);font-weight:600}
+.pc-nav-foot{position:absolute;bottom:24px;left:24px;font-size:18px;color:var(--muted);line-height:1.9}
+.pc-nav-foot b{color:var(--text);font-weight:600}
+.pc-nav-foot small{font-size:16px}
+.pc-main{flex:1;min-width:0;padding:26px 40px 20px;display:flex;flex-direction:column;gap:16px;overflow:hidden}
+.pc-h1{font-size:30px;font-weight:600;display:flex;align-items:center;gap:14px}
+.pc-h1 .pc-tag{font-size:16px;color:var(--muted);font-weight:400;border:1px solid var(--line);padding:3px 10px;border-radius:99px}
+.pc-h1 .pc-status{margin-left:auto;font-size:20px;color:var(--lime)}
+.pc-h2{font-size:24px;font-weight:600}
+.pc-filters{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.pc-filter{background:var(--scr);border-radius:12px;padding:10px 16px;display:flex;flex-direction:column;gap:4px;font-size:18px;color:var(--muted)}
+.pc-filter b{color:var(--text);font-weight:600}
+.pc-btn{height:48px;padding:0 22px;border-radius:14px;background:var(--track);color:var(--text);font-size:20px;font-weight:600}
+.pc-btn:hover{background:#414146}
+.pc-btn.lime{background:var(--lime);color:var(--ink)}
+.pc-switch{display:flex;align-items:center;gap:12px;margin-left:auto;font-size:20px;color:var(--muted);background:var(--scr);border-radius:14px;padding:8px 16px}
+.pc-switch i{width:56px;height:30px;border-radius:99px;background:var(--track);position:relative;flex:0 0 auto}
+.pc-switch i::after{content:"";position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.2s}
+.pc-switch.on{color:var(--lime)}
+.pc-switch.on i{background:var(--lime)}
+.pc-switch.on i::after{left:30px;background:var(--ink)}
+.pc-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.pc-stat{background:var(--scr);border-radius:18px;padding:18px 22px;display:flex;flex-direction:column;gap:8px}
+.pc-stat span{font-size:20px;color:var(--muted)}
+.pc-stat b{font-size:38px;font-weight:600;font-variant-numeric:tabular-nums}
+.pc-stat b small{font-size:20px;color:var(--muted);font-weight:400}
+.pc-card{background:var(--scr);border-radius:18px;padding:18px 24px}
+.pc-bars{display:flex;align-items:flex-end;gap:18px;height:150px;margin-top:14px}
+.pc-bars i{flex:1;border-radius:8px 8px 0 0;background:var(--track);display:block}
+.pc-bars i.on{background:var(--lime)}
+.pc-dates{display:flex;gap:18px;margin-top:8px}
+.pc-dates span{flex:1;text-align:center;font-size:18px;color:var(--muted)}
+.pc-event{display:flex;align-items:center;gap:24px;padding:14px 4px;border-bottom:1px solid var(--line);font-size:20px}
+.pc-event b{color:var(--lime);font-variant-numeric:tabular-nums;width:90px}
+.pc-event span{color:var(--muted)}
+.pc-event em{margin-left:auto;font-style:normal;color:var(--text)}
+.pc-note{font-size:18px;color:var(--muted);line-height:1.6}
+.pc-qa{display:grid;grid-template-columns:1fr 1fr;gap:20px;flex:1;min-height:0}
+.pc-qa>div{display:flex;flex-direction:column;gap:12px;min-height:0}
+.src-card,.ans-card{background:var(--scr);border-radius:18px;padding:20px 24px;flex:1;display:flex;flex-direction:column;gap:12px;font-size:20px;line-height:1.5;overflow:hidden}
+.src-card .t{font-size:20px;color:var(--lime);font-weight:600}
+.src-card .k{font-size:25px;font-weight:600}
+.src-card .m{color:var(--muted);font-size:19px}
+.src-card .lime{color:var(--lime)}
+.src-card .mono{font-family:ui-monospace,Consolas,monospace;font-size:18px;color:var(--muted)}
+.src-card hr,.ans-card hr{border:0;border-top:1px solid var(--line);margin:2px 0}
+.ans-card .q{font-size:22px;font-weight:600}
+.ans-card .a{font-size:22px}
+.ans-card .a.g{color:var(--muted)}
+.ans-card .basis{margin-top:auto;color:var(--lime);font-size:20px}
+.pc-inputrow{display:flex;gap:14px;align-items:center}
+.pc-inputrow input{flex:1;height:56px;border-radius:14px;background:var(--scr);border:1px solid var(--line);padding:0 20px;font-size:20px;color:var(--text);outline:none}
+.pc-inputrow input::placeholder{color:var(--muted)}
+.pc-footrow{display:flex;align-items:center;gap:22px;font-size:18px;color:var(--muted)}
+.pc-footrow button{height:44px;padding:0 20px;border-radius:12px;background:var(--track);color:var(--text);font-size:20px}
+.pc-footrow .disc{margin-left:auto;color:var(--muted)}
+.pc-row{display:flex;align-items:center;gap:20px}
+.pc-row .txt{font-size:22px;font-weight:600}
+.pc-row .txt small{display:block;font-size:18px;color:var(--muted);font-weight:400;margin-top:6px}
+.pc-slider{height:8px;border-radius:99px;background:var(--track);margin:16px 0 8px;overflow:hidden}
+.pc-slider i{display:block;height:100%;background:var(--lime);border-radius:99px}
+.pc-scale{display:flex;justify-content:space-between;font-size:18px;color:var(--muted)}
+.pc-scale b{color:var(--lime)}
+.pc-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:20px}
+.pc-table th{text-align:left;color:var(--muted);font-weight:400;padding:10px 0;border-bottom:1px solid var(--line)}
+.pc-table td{padding:12px 0;border-bottom:1px solid var(--line)}
+
+/* ---------- 走查条 / 模态 ---------- */
+.tour-bar{position:fixed;left:0;right:0;bottom:0;z-index:120;background:rgba(20,20,20,.97);border-top:1px solid rgba(165,246,59,.4);padding:12px 24px;display:none;align-items:center;gap:18px;box-shadow:0 -12px 40px rgba(0,0,0,.6)}
+.tour-bar.show{display:flex}
+.tour-bar .tb-title{font-size:14px;font-weight:700;color:var(--lime);white-space:nowrap}
+.tour-bar .tb-desc{font-size:13px;color:var(--muted);flex:1}
+.tour-steps{display:flex;gap:6px}
+.tour-steps i{width:26px;height:5px;border-radius:9px;background:var(--track)}
+.tour-steps i.done{background:var(--lime)}
+.tour-steps i.cur{background:var(--amber);box-shadow:0 0 10px var(--amber)}
+.modal-root{position:fixed;inset:0;z-index:130;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.78);backdrop-filter:blur(3px);padding:20px}
+.modal-root.show{display:flex}
+.modal{width:min(560px,100%);background:var(--scr);border:1px solid var(--line);border-radius:18px;padding:24px 26px;box-shadow:var(--shadow)}
+.modal h3{font-size:19px;margin-bottom:12px}
+.modal p,.modal li{font-size:13.5px;color:var(--muted);line-height:1.85}
+.modal ul{padding-left:20px;margin:8px 0}
+.modal .m-btns{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.modal .m-btns button{height:44px;padding:0 18px;border-radius:10px;font-size:14px;font-weight:650;border:1px solid var(--line);background:var(--track)}
+.modal .m-btns .ok{background:var(--red);color:#fff;border-color:var(--red)}
+.modal .m-btns .go{background:var(--lime);color:var(--ink);border-color:var(--lime)}
+.modal .kbd-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.modal kbd{background:var(--track);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;font-size:11px;color:var(--text)}
+
+@media(max-width:1180px){.main{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}.gallery-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:720px){.side{grid-template-columns:1fr}.gallery-grid{grid-template-columns:repeat(2,1fr)}.top-actions{width:100%}}
+
+/* ===================================================================
+   竖屏重排覆盖（360×720）：把横屏 800×480 设计稿收紧为竖向手环
+   —— 原横屏规则完整保留，便于对照；本节位于最后，同优先级后来居上
+   —— 「今日步数」圆环由 220px 收到 176px、主数值 64px 收到 38px
+   =================================================================== */
+.device-scale{width:360px}
+.band{width:230px}
+.band-top,.band-bottom{height:56px}
+.device{width:360px;height:720px;padding:14px;border-radius:64px}
+.device::before{inset:6px;border-radius:58px}
+.screen{width:332px;height:692px;border-radius:52px}
+.screen::after{border-radius:52px}
+.crown{right:2px;top:326px}
+
+/* 状态栏 / 页面骨架 */
+.statusbar{height:44px;flex:0 0 44px;padding:0 16px;gap:8px}
+.statusbar .sb-time{font-size:16px}
+.statusbar .sb-date{font-size:11px}
+.statusbar .sb-center,.statusbar .sb-right{font-size:12px;gap:5px}
+.statusbar .sb-center svg,.statusbar .sb-right svg{transform:scale(.72);transform-origin:center}
+.page{padding:4px 16px 0}
+.phead{height:36px;flex:0 0 36px}
+.phead h2{font-size:21px}
+.phead .sub{font-size:12px}
+.pbody{gap:8px}
+.pfoot{flex:0 0 26px;font-size:11px}
+.pfoot .ui-id{width:62px;font-size:11px}
+.pfoot .dots{gap:8px}
+.pfoot .dots i{width:7px;height:7px}
+.pfoot .nav{width:auto;font-size:11px}
+.page-hint{font-size:11px}
+
+/* 通用组件字号收紧 */
+.lbl{font-size:14px}
+.val{font-size:26px}
+.unit{font-size:13px}
+.ok-text{font-size:12px}
+.btn-lime{height:44px;font-size:15px;border-radius:13px}
+.btn-lime.sm{height:38px;font-size:13px;border-radius:11px}
+.btn-dark,.btn-red{height:44px;font-size:15px;border-radius:13px}
+.seg{gap:6px}
+.seg button{height:38px;font-size:13px;border-radius:10px}
+.sw{height:32px;padding:0 9px;font-size:12px;gap:7px}
+.ring .ring-bg,.ring .ring-fg{stroke-width:13}
+.ring-txt{gap:2px}
+.ring-txt .t{font-size:13px}
+.ring-txt b{font-size:42px}
+.ring-txt .s{font-size:11px}
+.explain{font-size:10.5px;line-height:1.5;padding:6px 9px}
+.chips .cap{font-size:9.5px}
+.chip{font-size:10px;padding:4px 7px;border-radius:7px}
+.mini-btn{height:28px;font-size:10.5px;padding:0 9px;border-radius:8px}
+
+/* 表盘 UI-01：圆环在上，距离/热量/活跃居中，两张卡片在下 —— 单列竖排 */
+.watch-grid{grid-template-columns:1fr;grid-template-rows:auto auto;align-content:center;gap:10px}
+.watch-grid .ring{width:176px;height:176px}
+.watch-grid .ring-txt b{font-size:38px}
+.w-stats{gap:0}
+.w-stat{padding:6px 2px;gap:6px}
+.watch-grid .w-stat>svg{display:none}          /* 竖屏去掉鞋子图标，三行标签统一左对齐 */
+.w-stat .lbl{margin-left:0 !important;width:64px;font-size:12px}
+.w-stat .val{font-size:20px}
+.w-stat .unit{width:34px;font-size:11px}
+.w-cards{grid-template-columns:1fr;gap:8px}
+.w-card{padding:7px 12px;gap:8px;min-height:54px;border-radius:14px}
+.w-card .wc-icon svg{transform:scale(.66);transform-origin:center}
+.w-card .wc-lbl{font-size:11px}
+.w-card .wc-val{font-size:22px}
+.w-card .wc-val small{font-size:12px}
+.w-card .wc-ok{font-size:10px}
+
+/* 运动 UI-02：圆环在上，数据面板在下 */
+.sport-grid{grid-template-columns:1fr;grid-template-rows:auto 1fr;gap:8px}
+.sport-grid .ring{width:140px;height:140px}
+.sport-grid .ring-txt b{font-size:32px}
+.sport-grid .ring-txt .t{font-size:12px}
+.sport-grid .ring-txt .s{font-size:10px}
+.sport-panel{padding:9px 12px;gap:6px;border-radius:14px}
+.sport-stats .lbl{font-size:11px}
+.sport-stats .val{font-size:19px}
+.chart-card{padding:7px 10px 4px;border-radius:11px}
+.chart-card .cap{font-size:11px}
+.bars{gap:6px;min-height:34px}
+.bar-days{gap:6px}
+.bar-days span{font-size:10px}
+.sport-foot .hint{font-size:10.5px}
+.sport-foot .btn-dark{width:88px;height:34px;font-size:12px;border-radius:10px}
+
+/* 心率 / 体温 五态 */
+.measure-grid{grid-template-columns:1fr 1fr;gap:8px}
+.meas-card{padding:10px 12px;border-radius:15px}
+.meas-card .lbl{font-size:13px}
+.meas-card .num{font-size:44px}
+.meas-card .num small{font-size:15px}
+.meas-card .ok-text{font-size:11px}
+.meas-foot .last{font-size:11px}
+.meas-foot .btn-lime{width:112px;height:40px;font-size:12px}
+.state-hero{gap:6px;border-radius:15px;padding:12px}
+.state-hero .big{font-size:27px}
+.state-hero .sub{font-size:12px}
+.state-hero .btn-lime{width:148px;height:38px;font-size:12px}
+.temp-hero .num{font-size:56px}
+.temp-hero .num small{font-size:20px}
+.temp-hero .ok-text{font-size:12px}
+
+/* 久坐 UI-05 */
+.sit-grid{grid-template-columns:1fr;grid-template-rows:auto auto;gap:8px}
+.sit-count{padding:10px 16px;border-radius:15px}
+.sit-count .lbl{font-size:13px}
+.sit-count .clock{font-size:46px}
+.sit-count .sub{font-size:12px}
+.sit-right{gap:6px}
+.sit-stat{padding:8px 14px;border-radius:14px;gap:2px}
+.sit-stat .row{font-size:12px}
+.sit-stat .row b{font-size:24px}
+.sit-stat .row b small{font-size:12px}
+.sit-stat .row.amber b{font-size:17px}
+.sit-right .btn-lime{height:38px;font-size:12px}
+.sit-demo{padding:5px 11px;border-radius:12px;gap:8px}
+.sit-demo .t{font-size:12px}
+.sit-demo .d{font-size:10.5px}
+.sit-tip{font-size:10.5px}
+
+/* 设置 UI-06 */
+.set-body{gap:8px}
+.set-row{padding:7px 11px;gap:8px;min-height:44px;border-radius:12px}
+.set-row .k{font-size:13px;flex:0 0 78px}
+.set-row .k small{font-size:10.5px}
+.set-row .v{font-size:12px}
+.set-row .seg button{height:32px;font-size:11px}
+.set-note,.set-link{font-size:10.5px}
+.bri-mini button{width:26px;height:26px;font-size:13px;border-radius:7px}
+.set-half button{font-size:10.5px;padding:5px 9px}
+.set-half .cap{font-size:10.5px}
+
+/* 覆盖层 / toast / 熄屏 */
+.alert-card,.dialog-card{width:288px;padding:16px 18px;border-radius:18px}
+.alert-card .ico,.dialog-card .ico{margin-bottom:6px}
+.alert-card .ico svg,.dialog-card .ico svg{transform:scale(.7)}
+.alert-card h2,.dialog-card h2{font-size:18px;margin-bottom:6px}
+.alert-card p,.dialog-card p{font-size:12.5px;line-height:1.45}
+.alert-card p.amber,.dialog-card p.amber{font-size:11.5px}
+.alert-card .vib,.dialog-card .vib{font-size:9.5px;padding:4px}
+.dlg-btns{gap:10px;margin-top:14px}
+.dlg-btns button{height:40px;font-size:13px;border-radius:11px}
+.dlg-note{font-size:10.5px;margin-top:10px}
+.toast{font-size:11px;bottom:26px;padding:8px 14px}
+.screen-off b{font-size:44px}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">HB</div>
+    <div>
+      <h1>智能健康手环 · 交互 Demo UI 展示 · 方案 B</h1>
+      <p>纯黑 #000000 + 青柠绿活力环 #A5F63B · 手环 360×720 竖屏 / PC 1440×900 · 六页面 / 久坐闭环 / 设置持久化</p>
+    </div>
+  </div>
+  <div class="top-actions">
+    <span class="tag">方案 B · 纯黑 + 青柠绿活力环</span>
+    <span class="tag plain">P0 验收 A-02 · 看步数 → 被提醒 → 设置阈值</span>
+    <button class="btn primary" id="btnTour">▶ 一键走查主流程</button>
+    <button class="btn ghost" id="btnHelp">操作说明</button>
+  </div>
+</header>
+
+<div class="main">
+  <!-- 左：设备展示台 -->
+  <section class="stage">
+    <div class="stage-head">
+      <h2>手环真机模拟 · 360 × 720 竖屏</h2>
+      <span>短按 / 右滑切页 · 长按熄屏 · 点击屏幕内按钮交互 · 步数块已缩小并竖排</span>
+    </div>
+
+    <div class="device-wrap" id="deviceWrap">
+      <div class="device-scale" id="deviceScale">
+        <div class="band band-top"></div>
+        <div class="device-shell" style="position:relative">
+          <div class="device" id="device">
+            <div class="screen" id="screen">
+              <div class="statusbar" id="statusbar"></div>
+              <div class="pages" id="pages"></div>
+              <div id="alertSlot"></div>
+              <div id="dialogSlot"></div>
+              <div class="toast" id="toast"></div>
+              <div class="screen-off" id="screenOff" data-act="wake">
+                <b id="offClock">12:30</b>
+                <span>屏幕已熄灭 · 仅关闭背光</span>
+                <small>点击屏幕或「抬腕 / 唤醒」点亮</small>
+              </div>
+            </div>
+          </div>
+          <div class="crown" title="侧边按键：短按切页 / 长按熄屏" data-hw="short" style="cursor:pointer"></div>
+        </div>
+        <div class="band band-bottom"></div>
+      </div>
+    </div>
+
+    <div class="stage-foot">物理按键模拟（短按右切页 · 长按 2s 熄屏 · 长按 5s 回表盘 · 长按 10s 系统确认）</div>
+    <div class="hw-controls">
+      <button data-hw="short">▸ 短按 · 切下一页</button>
+      <button data-hw="prev">◂ 返回上一页</button>
+      <button data-hw="long">◉ 长按 2s · 熄屏</button>
+      <button data-hw="long5">⟲ 长按 5s · 回表盘</button>
+      <button data-hw="wake">☀ 抬腕 / 唤醒</button>
+    </div>
+  </section>
+
+  <!-- 右：状态与控制台 -->
+  <aside class="side">
+    <div class="card">
+      <h3>实时状态 <span style="margin-left:auto;font-size:11px;color:var(--muted);font-weight:400" id="sidePage">表盘页</span></h3>
+      <div class="state-line"><span>状态机</span><b class="hl" id="stSm">Active</b></div>
+      <div class="state-line"><span>今日步数</span><b id="stSteps">8,432 步</b></div>
+      <div class="state-line"><span>连续静坐</span><b id="stSit">0 / 45 min</b></div>
+      <div class="state-line"><span>久坐阈值</span><b id="stTh">45 min</b></div>
+      <div class="state-line"><span>稍后次数</span><b id="stSnooze">0 / 3</b></div>
+      <div class="state-line"><span>佩戴 / 免打扰</span><b id="stWear">佩戴中 · 否</b></div>
+      <div class="state-line"><span>运行策略</span><b id="stPolicy">Demo 加速</b></div>
+      <div class="sm-graph" id="smGraph"></div>
+      <div class="sm-arrow">WearOff → Active ⇄ Sitting → Alerting → Snoozed ⇄ Alerting；Quiet 由 22:00–07:00 免打扰进入；走 30 步 → Active 复位。</div>
+    </div>
+
+    <div class="card">
+      <h3>快捷模拟（传感器 / 时间）</h3>
+      <div class="sim-grid">
+        <button data-sim="step1">+ 1 步</button>
+        <button data-sim="step10">+ 10 步</button>
+        <button data-sim="walk30">走 30 步（有效活动）</button>
+        <button data-sim="sit5">静坐 + 5 min</button>
+        <button data-sim="fire">立即触发提醒</button>
+        <button data-sim="quiet">🌙 切到 22:00 免打扰</button>
+        <button data-sim="day">☀ 回到 14:00</button>
+        <button data-sim="wear">切换佩戴状态</button>
+        <button data-sim="demo">切换 Demo / 标准策略</button>
+        <button data-sim="reset" class="wide">重置运行时状态（保留设置）</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>活动日志 <span style="margin-left:auto;font-size:11px;color:var(--muted);font-weight:400" id="logCount">0 条</span></h3>
+      <div class="log" id="log"></div>
+    </div>
+
+    <div class="card design">
+      <h3>设计要点 · 方案 B</h3>
+      <div class="swatches">
+        <div class="sw" style="background:#000000;color:#FFFFFF">BG</div>
+        <div class="sw" style="background:#1A1A1A;color:#FFFFFF">CARD</div>
+        <div class="sw" style="background:#303034;color:#FFFFFF">TRACK</div>
+        <div class="sw" style="background:#A5F63B;color:#152105">LIME</div>
+        <div class="sw" style="background:#FF587D;color:#FFFFFF">RED</div>
+        <div class="sw" style="background:#FFBC4C;color:#152105">AMBER</div>
+      </div>
+      <p>方案 B：纯黑底 + 青柠绿活力环，卡片 #1A1A1A、轨道 #303034、次文字 #A6A6AD、主按钮文字 #152105。<b>颜色不单独承载信息</b>，均配文字与单位。正文 18–20px、关键数值 40–112px，主按钮高 56px。</p>
+      <p style="margin-top:8px">按设计稿补齐：UI-03/04 五种测量状态、UI-06 上下半屏、UI-02/06/08 与 PC-03 的二次确认覆盖层、UI-PC-01/02/03 管理端三页。</p>
+      <p style="margin-top:8px">四条底线：提醒能触发 · 数据能显示 · 断电不丢设置 · 连续运行不死机。<b style="color:var(--amber)">教学原型，非医疗用途</b>。</p>
+      <p style="margin-top:8px">快捷键：<kbd>→</kbd> 切页 · <kbd>←</kbd> 返回 · <kbd>空格</kbd> 走30步 · <kbd>S</kbd> 熄屏 · <kbd>D</kbd> Demo/标准 · <kbd>T</kbd> 走查</p>
+    </div>
+  </aside>
+</div>
+
+<!-- 六页总览 -->
+<section class="gallery">
+  <h2>六页面总览 <small>方案 B · 环形切换：表盘 → 运动 → 心率血氧 → 体温 → 久坐 → 设置 → 表盘 · 点击缩略图可直接切换屏幕</small></h2>
+  <div class="gallery-grid" id="gallery"></div>
+</section>
+
+<!-- PC 管理端（选做扩展链路） -->
+<section class="opt-section" id="pcSection">
+  <h2>PC 管理端 · 选做扩展链路 <small>UI-PC-01 / 02 / 03 · 1440×900 · 点击左侧 tab 切换页面 · 均为 P2 加分选做，裁剪不影响四条底线</small></h2>
+  <div class="fr-tags"><span>FR-19 PC 端大模型健康问答</span><span>FR-20 基于 PC 端归档数据的 RAG 检索</span><span>FR-21 手环操控鼠标（BLE HID）</span></div>
+  <div class="pc-frame" id="pcFrame"><div class="pc-canvas" id="pcCanvas"></div></div>
+</section>
+
+<!-- 走查条 -->
+<div class="tour-bar" id="tourBar">
+  <div class="tb-title" id="tbTitle">① 看步数</div>
+  <div class="tb-desc" id="tbDesc">准备开始…</div>
+  <div class="tour-steps" id="tourSteps"></div>
+  <button class="btn ghost" id="btnTourStop" style="height:36px">■ 停止走查</button>
+</div>
+
+<!-- 页面级模态（操作说明 / PC 二次确认） -->
+<div class="modal-root" id="modalRoot"><div class="modal" id="modalBox"></div></div>
+
+<script>
+"use strict";
+/* =======================================================================
+   智能健康手环 · 交互 Demo UI · 方案 B（纯黑 + 青柠绿活力环）
+   自包含原型：360×720 竖屏手环屏（横屏设计稿收紧重排）/ 六页面 / 计步 / 久坐六态机 /
+   提醒弹窗 / 测量五态 / 设置上下半屏 / 二次确认 / PC 管理端 /
+   设置持久化(localStorage 模拟 NVS) / Demo 加速 / A-02 走查
+   ======================================================================= */
+
+const KEY = "hb.settings.v1";
+const DEFAULTS = { brightness:70, threshold:45, vibration:"中", raiseWake:true, demo:true, target:8000, wifi:false, mouse:false, qa:false };
+const PAGES = [
+  {id:"watch",    name:"表盘",     en:"Watch Face", req:"必做"},
+  {id:"sport",    name:"运动",     en:"Activity",   req:"必做"},
+  {id:"hr",       name:"心率血氧", en:"HR / SpO₂",  req:"选做"},
+  {id:"temp",     name:"体温",     en:"Temp",       req:"选做"},
+  {id:"sit",      name:"久坐",     en:"Sedentary",  req:"必做"},
+  {id:"settings", name:"设置",     en:"Settings",   req:"必做"}
+];
+const SM = ["WearOff","Active","Sitting","Alerting","Snoozed","Quiet"];
+const SMCN = {WearOff:"未佩戴",Active:"活动中",Sitting:"静坐中",Alerting:"提醒中",Snoozed:"稍后中",Quiet:"免打扰"};
+const SM_COLOR = {WearOff:"var(--muted)",Active:"var(--lime)",Sitting:"var(--amber)",Alerting:"var(--red)",Snoozed:"var(--amber)",Quiet:"var(--muted)"};
+const MSTATES = ["S01","S02","S03","S04","S05"];
+const MST_CN = {S01:"结果",S02:"测量中",S03:"信号差",S04:"未佩戴",S05:"未启用"};
+
+function loadSettings(){
+  try{ const raw = localStorage.getItem(KEY); if(!raw) return {...DEFAULTS}; return {...DEFAULTS, ...JSON.parse(raw)}; }
+  catch(e){ return {...DEFAULTS}; }
+}
+function saveSettings(){
+  try{ localStorage.setItem(KEY, JSON.stringify({
+    brightness:S.brightness, threshold:S.threshold, vibration:S.vibration,
+    raiseWake:S.raiseWake, demo:S.demo, target:S.target, wifi:S.wifi, mouse:S.mouse, qa:S.qa
+  })); }catch(e){}
+}
+
+const S = {
+  ...loadSettings(),
+  page:0, steps:8432, hr:72, spo2:98, temp:36.5,
+  sitMin:0, sitTotal:126, alertCount:2, sm:"Active", worn:true, quiet:false, simHour:14,
+  snoozeCount:0, snoozeRemain:0, resetPending:false, resetSteps:0,
+  alertOpen:false, screenOff:false, tick:0, flashSel:null,
+  tour:null, tourTimers:[], logCount:0,
+  setHalf:0, hrState:"S01", tempState:"S01", measure:null,
+  dialog:null, pcTab:0, pcPending:null, sensitivity:50
+};
+
+const $ = s => document.querySelector(s);
+const fmt = n => Math.round(n).toLocaleString("en-US");
+const pad = n => String(n).padStart(2,"0");
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+const pctSteps = () => Math.min(100, Math.round(S.steps / S.target * 100));
+const pctSit  = () => Math.min(100, Math.round(S.sitMin / S.threshold * 100));
+const clockStr = () => pad(S.simHour)+":41";
+function mmss(min){
+  const t = Math.max(0, Math.round(min*60));
+  return pad(Math.floor(t/60))+":"+pad(t%60);
+}
+
+/* ---------------- 图标 ---------------- */
+const IC = {
+  sync:`<svg width="26" height="20" viewBox="0 0 48 36" fill="none" stroke="var(--lime)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18 A16 16 0 0 1 38 13 L40 8 M38 13 H30"/><path d="M39 30 A16 16 0 0 1 10 35 L8 40 M10 35 H18"/></svg>`,
+  battery:`<svg width="38" height="20" viewBox="0 0 40 22"><rect x="1" y="1" width="35" height="18" rx="4" fill="none" stroke="var(--muted)" stroke-width="2"/><rect x="5" y="5" width="25" height="10" rx="2" fill="var(--lime)"/><rect x="37" y="7" width="3" height="7" rx="1" fill="var(--muted)"/></svg>`,
+  heart:`<svg width="36" height="32" viewBox="0 0 48 44" fill="none" stroke="var(--red)" stroke-width="3" stroke-linejoin="round"><path d="M24 42 C4 28 2 18 9 11 C15 5 22 9 24 14 C28 5 39 6 43 13 C50 22 44 32 24 42 Z"/></svg>`,
+  thermo:`<svg width="30" height="34" viewBox="0 0 50 50" fill="none" stroke="var(--lime)" stroke-width="3" stroke-linecap="round"><path d="M20 28 V9 A5 5 0 0 1 30 9 V28 A11 11 0 1 1 20 28"/><circle cx="25" cy="37" r="4" fill="var(--lime)" stroke="none"/></svg>`,
+  shoe:`<svg width="32" height="28" viewBox="0 0 50 42" fill="none" stroke="var(--lime)" stroke-width="3" stroke-linejoin="round"><path d="M7 31 L16 14 L23 20 L29 12 L35 23 L43 29 V38 H7 Z"/></svg>`,
+  chair:`<svg width="58" height="58" viewBox="0 0 48 48" fill="none" stroke="var(--amber)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M12 7 V28 H38 V43 M12 28 V43 M16 18 H35 V28 M12 34 H38"/></svg>`,
+  warn:`<svg width="58" height="58" viewBox="0 0 48 48" fill="none" stroke="var(--amber)" stroke-width="3" stroke-linejoin="round"><path d="M24 5 L45 42 H3 Z"/><path d="M24 18 V28"/><circle cx="24" cy="35" r="1.8" fill="var(--amber)" stroke="none"/></svg>`
+};
+function ringHtml(pct, size){
+  const sw = 13, r = size/2 - sw, c = 2*Math.PI*r;
+  return `<div class="ring" style="width:${size}px;height:${size}px">
+    <svg viewBox="0 0 ${size} ${size}"><circle class="ring-bg" cx="${size/2}" cy="${size/2}" r="${r}"/><circle class="ring-fg" cx="${size/2}" cy="${size/2}" r="${r}" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${(c*(1-clamp(pct,0,100)/100)).toFixed(1)}"/></svg>
+    <div class="ring-txt">%TXT%</div></div>`;
+}
+
+/* ---------------- 日志 / toast ---------------- */
+function log(msg, kind){
+  const el = document.createElement("div");
+  const t = new Date().toLocaleTimeString("zh-CN",{hour12:false});
+  el.innerHTML = `<time>${t}</time><em style="color:${kind||"var(--text)"}">${msg}</em>`;
+  const box = $("#log");
+  box.prepend(el);
+  while(box.children.length > 40) box.lastChild.remove();
+  S.logCount++; $("#logCount").textContent = S.logCount + " 条";
+}
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove("show"), 2100);
+}
+
+/* ---------------- 页面骨架 ---------------- */
+function head(i, sub){
+  return `<div class="phead"><h2>${PAGES[i].name}</h2><span class="sub">${sub||""}</span></div>`;
+}
+function foot(id, i){
+  return `<div class="pfoot"><span class="ui-id">${id}</span>
+    <span class="dots">${[0,1,2,3,4,5].map(k=>`<i class="${k===i?"on":""}"></i>`).join("")}</span>
+    <span class="nav">短按 / 右滑翻页</span></div>`;
+}
+function stateChips(kind){
+  const cur = S[kind+"State"];
+  return `<div class="chips"><span class="cap">界面状态预览 · 设计稿 S01–S05</span>`+
+    MSTATES.map(v=>`<button class="chip ${cur===v?"on":""}" data-act="mstate" data-kind="${kind}" data-v="${v}">${v} ${MST_CN[v]}</button>`).join("")+`</div>`;
+}
+
+/* ---------------- 页面渲染 ---------------- */
+function renderPage(i){
+  const ps = pctSteps();
+  switch(PAGES[i].id){
+
+  case "watch": {
+    const done = S.steps >= S.target;
+    const ring = ringHtml(ps, 176).replace("%TXT%",
+      `<span class="t">今日步数</span><b>${fmt(S.steps)}</b><span class="s">目标 ${fmt(S.target)} · ${done?"已达成":"进行中"}</span>`);
+    return `<div class="page">
+      <div class="pbody" style="gap:12px">
+        <div class="watch-grid">
+          ${ring}
+          <div class="w-stats">
+            <div class="w-stat">${IC.shoe}<span class="lbl">距离</span><span class="val">6.1</span><span class="unit">km</span></div>
+            <div class="w-stat"><span class="lbl" style="margin-left:44px">热量</span><span class="val">210</span><span class="unit">kcal</span></div>
+            <div class="w-stat"><span class="lbl" style="margin-left:44px">活跃时长</span><span class="val">82</span><span class="unit">min</span></div>
+          </div>
+        </div>
+        <div class="w-cards">
+          <div class="w-card"><span class="wc-icon">${IC.heart}</span><div><div class="wc-lbl">心率</div><div class="wc-val">${S.hr} <small>bpm</small></div></div><span class="wc-ok">信号良好</span></div>
+          <div class="w-card"><span class="wc-icon">${IC.thermo}</span><div><div class="wc-lbl">体温</div><div class="wc-val">${S.temp.toFixed(1)} <small>°C</small></div></div><span class="wc-ok">信号良好</span></div>
+        </div>
+        <div class="page-hint">短按翻页 · 长按 2 s 熄屏 · 教学原型，非医疗用途</div>
+      </div>
+      ${foot("UI-01",0)}</div>`;
+  }
+
+  case "sport": {
+    const done = S.steps >= S.target;
+    const ring = ringHtml(ps, 140).replace("%TXT%",
+      `<span class="t">今日步数</span><b id="bigSteps">${fmt(S.steps)}</b><span class="s">${done?"目标已达成":"目标进行中"}</span>`);
+    const bars = [52,68,58,80,72,88,100];
+    return `<div class="page">${head(1,"今日目标 "+fmt(S.target)+" 步")}
+      <div class="pbody">
+        <div class="sport-grid">
+          ${ring}
+          <div class="sport-panel">
+            <div class="sport-stats">
+              <div><span class="lbl">距离</span><span class="val">6.1 <span class="unit" style="font-size:18px">km</span></span></div>
+              <div><span class="lbl">热量</span><span class="val">210 <span class="unit" style="font-size:18px">kcal</span></span></div>
+              <div><span class="lbl">活跃</span><span class="val">82 <span class="unit" style="font-size:18px">min</span></span></div>
+            </div>
+            <div class="chart-card">
+              <span class="cap">近 7 天步数</span>
+              <div class="bars">${bars.map((v,k)=>`<i class="${k===6?"on":""}" style="height:${v}%"></i>`).join("")}</div>
+              <div class="bar-days">${["日","一","二","三","四","五","六"].map(d=>`<span>${d}</span>`).join("")}</div>
+            </div>
+            <div class="sport-foot">
+              <span class="hint">图表内左右滑动<br>查看更早记录</span>
+              <button class="btn-dark" data-act="clearsteps">清零</button>
+            </div>
+          </div>
+        </div>
+        <div class="mini-btns">
+          <button class="mini-btn" data-act="step1">+ 1 步</button>
+          <button class="mini-btn" data-act="step10">+ 10 步</button>
+          <button class="mini-btn lime" data-act="walk30">走 30 步（有效活动）</button>
+        </div>
+      </div>
+      ${foot("UI-02",1)}</div>`;
+  }
+
+  case "hr": {
+    const st = S.hrState;
+    let body = "";
+    if(st==="S01"){
+      body = `<div class="measure-grid">
+          <div class="meas-card"><span class="lbl">心率</span><div class="num">${S.hr}<small> bpm</small></div><span class="ok-text">信号良好</span></div>
+          <div class="meas-card"><span class="lbl">血氧</span><div class="num">${S.spo2}<small> %</small></div><span class="ok-text">信号良好</span></div>
+        </div>
+        <div class="meas-foot"><span class="last">最近一次测量 09:40</span><button class="btn-lime" data-act="remeasure" data-kind="hr">重新测量</button></div>`;
+    } else if(st==="S02"){
+      const rem = S.measure ? S.measure.remain : 10;
+      body = `<div class="state-hero"><div class="big lime">测量中</div><div class="sub">${pad(rem)} / 10 s</div>
+          <div class="sub">信号质量：采集中</div><div class="sub">请保持静止并贴合佩戴</div>
+          <div class="prog"><i style="width:${(10-rem)*10}%"></i></div></div>`;
+    } else if(st==="S03"){
+      body = `<div class="state-hero"><div class="big amber">请保持静止</div><div class="sub amber">信号质量不足 · 结果暂不显示</div>
+          <button class="btn-lime" data-act="remeasure" data-kind="hr">重新测量</button></div>`;
+    } else if(st==="S04"){
+      body = `<div class="state-hero"><div class="big white">未佩戴</div><div class="sub">请先贴合佩戴，再开始测量</div>
+          <button class="btn-lime" data-act="wearMeasure" data-kind="hr">检查佩戴并测量</button></div>`;
+    } else {
+      body = `<div class="state-hero"><div class="big white">未启用</div><div class="sub">该选做功能暂未启用</div>
+          <div class="sub">短按按键继续浏览其他页面</div></div>`;
+    }
+    return `<div class="page">${head(2,"选做功能")}
+      <div class="pbody">${body}${stateChips("hr")}
+        <div class="explain">PPG 仅用于心率与血氧示意；数值为演示数据，<b>教学原型，非医疗用途</b>，不可用于诊断。</div>
+      </div>${foot("UI-03-"+st,2)}</div>`;
+  }
+
+  case "temp": {
+    const st = S.tempState;
+    let body = "";
+    if(st==="S01"){
+      body = `<div class="temp-hero"><div class="num">${S.temp.toFixed(1)}<small> °C</small></div><div class="ok-text">信号良好 · 传感器读数</div></div>
+        <div class="meas-foot"><span class="last">最近一次测量 09:40</span><button class="btn-lime" data-act="remeasure" data-kind="temp">重新测量</button></div>`;
+    } else if(st==="S02"){
+      const rem = S.measure ? S.measure.remain : 10;
+      body = `<div class="state-hero"><div class="big lime">测量中</div><div class="sub">${pad(rem)} / 10 s</div>
+          <div class="sub">信号质量：采集中</div><div class="sub">请保持静止并贴合佩戴</div>
+          <div class="prog"><i style="width:${(10-rem)*10}%"></i></div></div>`;
+    } else if(st==="S03"){
+      body = `<div class="state-hero"><div class="big amber">请保持静止</div><div class="sub amber">信号质量不足 · 结果暂不显示</div>
+          <button class="btn-lime" data-act="remeasure" data-kind="temp">重新测量</button></div>`;
+    } else if(st==="S04"){
+      body = `<div class="state-hero"><div class="big white">未佩戴</div><div class="sub">请先贴合佩戴，再开始测量</div>
+          <button class="btn-lime" data-act="wearMeasure" data-kind="temp">检查佩戴并测量</button></div>`;
+    } else {
+      body = `<div class="state-hero"><div class="big white">未启用</div><div class="sub">该选做功能暂未启用</div>
+          <div class="sub">短按按键继续浏览其他页面</div></div>`;
+    }
+    return `<div class="page">${head(3,"选做功能")}
+      <div class="pbody">${body}${stateChips("temp")}
+        <div class="explain">体温须独立传感器，接触式 NTC 估算体表温度；数值为示意数据，<b>教学原型，非医疗用途</b>。</div>
+      </div>${foot("UI-04-"+st,3)}</div>`;
+  }
+
+  case "sit": {
+    const remain = Math.max(0, S.threshold - S.sitMin);
+    return `<div class="page">${head(4,"Sitting · 静坐中")}
+      <div class="pbody">
+        <div class="sit-grid">
+          <div class="sit-count"><span class="lbl">距下次提醒</span><div class="clock">${mmss(remain)}</div><div class="sub">本次阈值 ${S.threshold} 分钟</div></div>
+          <div class="sit-right">
+            <div class="sit-stat">
+              <div class="row"><span>今日久坐累计</span><b>${Math.floor(S.sitTotal)} <small>min</small></b></div>
+              <div class="row amber"><span>提醒次数</span><b>${S.alertCount} 次</b></div>
+            </div>
+            <button class="btn-lime" data-act="standup">立即起身</button>
+            <span class="set-link" style="text-align:center">重置计时并记录反馈</span>
+          </div>
+        </div>
+        <div class="sit-demo"><span class="t">演示模式</span><span class="d">${S.demo?"开启 · 约 60 s 触发提醒":"关闭 · 开启后 60 s 触发"}</span>
+          <button class="sw ${S.demo?"on":""}" data-act="demo"><i></i>${S.demo?"已开启":"已关闭"}</button></div>
+        <div class="mini-btns">
+          <button class="mini-btn" data-act="sit5">静坐 + 5 min</button>
+          <button class="mini-btn" data-act="fireAlert">立即触发提醒</button>
+          <button class="mini-btn lime" data-act="walk30">走 30 步复位</button>
+        </div>
+        <div class="sit-tip">${S.resetPending ? "待复位：请再走 "+(30-S.resetSteps)+" 步完成「察觉—提醒—反馈」闭环" : (S.snoozeCount>0 ? "稍后已用 "+S.snoozeCount+"/3 次 · 有效活动＝5 min 窗口 ≥30 步" : "有效活动＝5 min 窗口 ≥30 步 · 稍后最多 3 次 · 站起接电话 2 min 宽限")}</div>
+      </div>
+      ${foot("UI-05",4)}</div>`;
+  }
+
+  case "settings": {
+    const half = S.setHalf;
+    let main = "";
+    if(half===0){
+      main = `
+        <div class="set-row"><span class="k">屏幕亮度</span>
+          <div class="bri-bar"><i style="width:${S.brightness}%"></i></div>
+          <span class="v">${S.brightness}%</span>
+          <div class="bri-mini"><button data-act="bri-">−</button><button data-act="bri+">+</button></div></div>
+        <div class="set-row"><span class="k">久坐阈值<small>FR-16 个性化</small></span>
+          <div class="seg">${[30,45,60].map(v=>`<button data-act="th${v}" class="${S.threshold===v?"on":""}">${v} min</button>`).join("")}</div></div>
+        <div class="set-row"><span class="k">震动强度</span>
+          <div class="seg">${["低","中","高"].map(v=>`<button data-act="vib" data-v="${v}" class="${S.vibration===v?"on":""}">${v}</button>`).join("")}</div></div>
+        <div class="set-row"><span class="k">抬腕亮屏<small>设置自动保存</small></span>
+          <button class="sw ${S.raiseWake?"on":""}" data-act="raise"><i></i>${S.raiseWake?"已开启":"已关闭"}</button></div>
+        <div class="set-note" style="margin-top:auto">● 设置自动保存 · 断电不丢设置（NVS，键 ${KEY}）</div>`;
+    } else {
+      main = `
+        <div class="set-row" style="min-height:76px"><span class="k" style="flex:1">Wi-Fi 补传<small>默认关闭 · 开启需确认</small></span>
+          <button class="sw ${S.wifi?"on":""}" data-act="wifi" style="margin-left:0"><i></i>${S.wifi?"已开启":"已关闭"}</button></div>
+        <div class="set-row"><span class="k" style="flex:1">PC 健康问答</span><span class="v" style="color:var(--muted)">未连接 · 仅查看状态</span></div>
+        <div class="set-row"><span class="k" style="flex:1">PC 鼠标映射</span><button class="mini-btn lime" data-act="goPc">已关闭 · PC 端操作 ▸</button></div>
+        <div class="set-link">问答与映射的实际开关位于 PC 管理端</div>
+        <div class="set-row" style="min-height:64px"><span class="k" style="flex:1">Demo 加速<small>演示控件 · 1 s ≈ 1 min</small></span>
+          <button class="sw ${S.demo?"on":""}" data-act="demo" style="margin-left:0"><i></i>${S.demo?"已开启":"已关闭"}</button></div>
+        <button class="btn-red" data-act="factory" style="margin-top:auto">恢复出厂设置</button>
+        <div class="set-link" style="text-align:center">将清空本地记录与设置 · 需二次确认</div>`;
+    }
+    return `<div class="page">${head(5,"向下 / 上滑动 · "+(half+1)+"/2")}
+      <div class="pbody">
+        <div class="set-body"><div class="set-main">${main}</div><div class="set-scrollbar"><i style="top:${half*50}%"></i></div></div>
+        <div class="set-half"><span class="cap">半屏预览</span><button data-act="half" data-v="0" class="${half===0?"on":""}">1/2 常规设置</button><button data-act="half" data-v="1" class="${half===1?"on":""}">2/2 连接与出厂</button></div>
+      </div>
+      ${foot("UI-06-S0"+(half+1),5)}</div>`;
+  }
+  }
+  return "";
+}
+
+/* ---------------- 状态栏 / 弹窗 / 熄屏 ---------------- */
+function renderStatusbar(){
+  const center = !S.worn ? `<span style="color:var(--muted)">未佩戴 · 监测暂停</span>`
+    : S.quiet ? `<span style="color:var(--amber)">🌙 免打扰</span>`
+    : `${IC.sync}<span>已同步</span>`;
+  $("#statusbar").innerHTML =
+    `<span class="sb-time">${clockStr()}</span><span class="sb-date">11月07日 周六</span>`+
+    `<span class="sb-center">${center}</span>`+
+    `<span class="sb-right">${IC.battery}<span>86%</span></span>`;
+}
+function renderAlert(){
+  const slot = $("#alertSlot");
+  if(!S.alertOpen){ slot.innerHTML=""; return; }
+  const dis = S.snoozeCount>=3;
+  slot.innerHTML = `<div class="alert-layer">
+    <div class="alert-card">
+      <div class="ico">${IC.chair}</div>
+      <h2>该起身活动一下了</h2>
+      <p>已连续静坐 ${Math.floor(S.sitMin)} 分钟</p>
+      <p>走 30 步也可结束提醒</p>
+      <p class="amber">60 s 无操作自动稍后 · 最多 3 次</p>
+      <div class="vib">马达震动 · 2 s × 3（演示压缩为 3 次短震）</div>
+      <div class="dlg-btns">
+        <button class="dlg-cancel" data-act="snooze" ${dis?"disabled style=\"opacity:.4;cursor:not-allowed\"":""}>${dis?"稍后次数已用尽":"稍后 10 分钟"}</button>
+        <button class="dlg-ok" data-act="gotup">已起身</button>
+      </div>
+      <div class="dlg-note">提醒期间不可翻页 · 稍后已用 ${S.snoozeCount}/3 次 · 走 30 步可直接复位</div>
+    </div></div>`;
+}
+function deviceConfirm(cfg){ S.dialog = cfg; renderDialog(); }
+function closeDialog(){ S.dialog = null; renderDialog(); }
+function renderDialog(){
+  const slot = $("#dialogSlot");
+  if(!S.dialog){ slot.innerHTML=""; return; }
+  const d = S.dialog;
+  slot.innerHTML = `<div class="dialog-layer">
+    <div class="dialog-card">
+      <div class="ico">${d.icon||IC.warn}</div>
+      <h2>${d.title}</h2>
+      ${d.lines.map((t,i)=>`<p class="${i===0?"":"small"}">${t}</p>`).join("")}
+      <div class="dlg-btns">
+        <button class="dlg-cancel" data-act="dlg-cancel">取消</button>
+        <button class="dlg-ok ${d.danger?"red":""}" data-act="dlg-ok">${d.ok}</button>
+      </div>
+      <div class="dlg-note">点击取消返回原页面</div>
+    </div></div>`;
+}
+function renderScreenOff(){
+  $("#screenOff").classList.toggle("show", S.screenOff);
+  $("#offClock").textContent = clockStr();
+}
+function applyBrightness(){
+  $("#screen").style.filter = "brightness("+(0.78 + S.brightness/100*0.32).toFixed(2)+")";
+}
+
+/* ---------------- 侧栏 ---------------- */
+function renderSide(){
+  $("#sidePage").textContent = PAGES[S.page].name + "页";
+  $("#stSm").textContent = S.sm; $("#stSm").style.color = SM_COLOR[S.sm];
+  $("#stSteps").textContent = fmt(S.steps) + " 步";
+  $("#stSit").textContent = Math.floor(S.sitMin) + " / " + S.threshold + " min";
+  $("#stTh").textContent = S.threshold + " min";
+  $("#stSnooze").textContent = S.snoozeCount + " / 3";
+  $("#stWear").textContent = (S.worn?"佩戴中":"未佩戴") + " · " + (S.quiet?"是":"否");
+  $("#stPolicy").textContent = S.demo ? "Demo 加速（1s≈1min）" : "Standard（实时）";
+  $("#smGraph").innerHTML = SM.map(s=>`<div class="sm-g ${S.sm===s?"on":""}">${s}</div>`).join("");
+}
+
+/* ---------------- 画廊 ---------------- */
+const GALLERY_BIG = {
+  watch:  {big:fmt(S.steps), sub:"步数环 · 距离 / 热量 / 心率", color:"var(--lime)"},
+  sport:  {big:fmt(S.steps), sub:"7 天柱状图 · 目标进度", color:"var(--lime)"},
+  hr:     {big:S.hr+" / "+S.spo2, sub:"bpm · % · 五态预览", color:"var(--red)"},
+  temp:   {big:S.temp.toFixed(1)+"°", sub:"体表温度 · 五态预览", color:"var(--text)"},
+  sit:    {big:Math.floor(S.sitTotal)+" min", sub:"倒计时 · 立即起身 · 演示模式", color:"var(--amber)"},
+  settings:{big:S.threshold+" min", sub:"上下半屏 · NVS · 二次确认", color:"var(--lime)"}
+};
+function renderGallery(){
+  $("#gallery").innerHTML = PAGES.map((p,i)=>{
+    const g = GALLERY_BIG[p.id];
+    return `<div class="gcard ${S.page===i?"on":""}" data-page="${i}">
+      <div class="gno">UI-0${i+1} · ${p.en}</div>
+      <div class="gtag ${p.req==="必做"?"r":""}">${p.req}</div>
+      <div class="gname">${p.name}</div>
+      <div class="gbig" style="color:${g.color}">${g.big}</div>
+      <div class="gsub">${g.sub}</div>
+      <div class="gbar" style="background:${g.color}"></div>
+    </div>`;
+  }).join("");
+}
+
+/* ---------------- PC 管理端 ---------------- */
+function pcSwitch(on, pact, label){
+  return `<div class="pc-switch ${on?"on":""}" data-pact="${pact}" style="cursor:pointer">${label}<i></i></div>`;
+}
+function renderPc(){
+  const t = S.pcTab;
+  let content = "";
+  if(t===0){
+    const bars=[55,72,62,84,76,90,100];
+    content = `
+      <div class="pc-h1">设备与归档记录 <span class="pc-tag">UI-PC-01</span></div>
+      <div class="pc-filters">
+        <div class="pc-filter"><span>设备选择</span><b>HB-2026-G03-01 ▾</b></div>
+        <div class="pc-filter"><span>时间范围</span><b>2026-11-01 — 2026-11-07</b></div>
+        <button class="pc-btn lime" data-pact="export">导出 CSV</button>
+      </div>
+      <div class="pc-stats">
+        <div class="pc-stat"><span>今日步数</span><b>${fmt(S.steps)} <small>步</small></b></div>
+        <div class="pc-stat"><span>今日久坐</span><b>${Math.floor(S.sitTotal)} <small>min</small></b></div>
+        <div class="pc-stat"><span>今日提醒</span><b>${S.alertCount} <small>次</small></b></div>
+      </div>
+      <div class="pc-card"><div class="pc-h2">近 7 天步数趋势</div>
+        <div class="pc-bars">${bars.map((v,k)=>`<i class="${k===6?"on":""}" style="height:${v}%"></i>`).join("")}</div>
+        <div class="pc-dates">${["11/01","11/02","11/03","11/04","11/05","11/06","11/07"].map(d=>`<span>${d}</span>`).join("")}</div></div>
+      <div class="pc-card" style="flex:1"><div class="pc-h2">事件记录 <span style="font-size:18px;color:var(--muted);font-weight:400">类型：全部 ▾</span></div>
+        <div class="pc-event"><b>09:33</b><span>久坐提醒</span><em>已起身</em></div>
+        <div class="pc-event"><b>08:42</b><span>久坐提醒</span><em>稍后 10 分钟</em></div></div>
+      <div class="pc-note">导出前提示「仅用于教学」 · 问答导出包含来源与免责声明</div>`;
+  } else if(t===1){
+    content = `
+      <div class="pc-h1">健康问答 <span class="pc-tag">UI-PC-02</span><span class="pc-status">模型状态：就绪</span>
+        ${pcSwitch(S.qa,"qa","启用问答")}</div>
+      <div class="pc-filters">
+        <div class="pc-filter"><span>设备</span><b>HB-2026-G03-01 ▾</b></div>
+        <div class="pc-filter"><span>范围</span><b>2026-11-01 — 2026-11-07 ▾</b></div>
+      </div>
+      <div class="pc-qa">
+        <div><div class="pc-h2">检索来源</div>
+          <div class="src-card"><div class="t">来源 01 · records</div><div>设备 HB-2026-G03-01</div>
+            <div class="m">2026-11-07 00:00—09:41</div><hr>
+            <div class="k">久坐累计 ${Math.floor(S.sitTotal)} min</div><div class="m">提醒 ${S.alertCount} 次 · 已起身 1 次</div>
+            <div class="lime">▾ 展开原始字段</div><div class="mono">sedentary_minutes = ${Math.floor(S.sitTotal)}</div>
+            <div class="m">数据来自本机 SQLite 归档</div></div></div>
+        <div><div class="pc-h2">回答</div>
+          <div class="ans-card"><div class="q">你：今天久坐了多久？</div><hr>
+            <div class="a">截至今天 09:41，该设备记录的</div><div class="a">今日久坐累计为 ${Math.floor(S.sitTotal)} 分钟。</div>
+            <div class="a">今天已触发 ${S.alertCount} 次久坐提醒。</div><div class="a g">以上统计仅覆盖所选设备与时间范围。</div>
+            <div class="basis">依据：来源 01</div></div></div>
+      </div>
+      <div class="pc-inputrow"><input id="pcAsk" placeholder="输入关于所选数据的问题…"><button class="pc-btn lime" data-pact="ask">询问</button></div>
+      <div class="pc-footrow"><button data-pact="clear">清空会话</button><span>回车发送 · 无可用来源时提示数据不足</span>
+        <span class="disc">教学演示，非医疗建议 · 数据仅来自本机归档</span></div>`;
+  } else {
+    content = `
+      <div class="pc-h1">手环操控鼠标 <span class="pc-tag">UI-PC-03</span></div>
+      <div class="pc-card"><div class="pc-row"><div class="txt">启用手环操控鼠标<small>${S.mouse?"已开启 · 手环动作将控制电脑光标":"已关闭 · 关闭后不产生任何鼠标事件"}</small></div>
+        ${pcSwitch(S.mouse,"mouse","")}</div></div>
+      <div class="pc-card"><div class="pc-h2">灵敏度</div>
+        <div class="pc-slider"><i style="width:${S.sensitivity}%"></i></div>
+        <div class="pc-scale"><span>低</span><b>${S.sensitivity}%</b><span>高</span></div></div>
+      <div class="pc-card"><div class="pc-h2">手势映射</div>
+        <table class="pc-table"><tr><th>手环动作</th><th>映射结果</th></tr>
+          <tr><td>抬腕 / 倾斜</td><td>光标移动</td></tr><tr><td>按键 / 握拳</td><td>鼠标左键</td></tr></table></div>
+      <div class="pc-note">连接：BLE HID · HB-2026-G03-01 · 延迟 18 ms<br>具体手势集合待确认；表内为说明书示意映射</div>
+      <div class="pc-inputrow"><button class="pc-btn" data-pact="calib">校准</button>
+        <span class="pc-note">点击后保持静止 3 s，设定中立姿态</span></div>`;
+  }
+  $("#pcCanvas").innerHTML = `
+    <div class="pc-top"><span class="pc-brand">HEALTH BAND</span><span class="pc-brand-sub">| 智能健康手环管理端</span>
+      <span class="pc-conn">HB-2026-G03-01 · 已连接</span></div>
+    <div class="pc-body">
+      <div class="pc-nav">
+        <a class="${t===0?"on":""}" data-pact="tab" data-tab="0">设备概览</a>
+        <a class="${t===1?"on":""}" data-pact="tab" data-tab="1">健康问答</a>
+        <a class="${t===2?"on":""}" data-pact="tab" data-tab="2">鼠标映射</a>
+        <div class="pc-nav-foot">设备<br><b>HB-2026-G03-01</b><br><small>UI-PC-0${t+1}</small></div>
+      </div>
+      <div class="pc-main">${content}</div>
+    </div>`;
+}
+
+/* ---------------- 总渲染 ---------------- */
+function render(animate){
+  renderStatusbar();
+  $("#pages").innerHTML = renderPage(S.page);
+  if(animate) $("#pages .page").classList.add("fade");
+  renderAlert(); renderDialog(); renderScreenOff(); renderSide(); renderGallery(); applyBrightness();
+  if(S.flashSel){ const el = $(S.flashSel); if(el) el.classList.add("flash"); }
+}
+
+/* ---------------- 状态机 ---------------- */
+function effectiveActivity(){
+  S.sitMin = 0; S.snoozeCount = 0; S.snoozeRemain = 0; S.alertOpen = false;
+  if(S.resetPending){ S.resetPending = false; S.resetSteps = 0; log("走满 30 步 → 复位完成，久坐计时清零","var(--lime)"); }
+  else log("检测到有效活动 → 久坐计时清零","var(--lime)");
+  if(S.sm !== "Quiet" && S.worn) S.sm = "Active";
+}
+function addSteps(n){
+  S.steps += n;
+  if(S.alertOpen && n>=30){
+    log("走 30 步 → 自动完成「已起身」反馈","var(--lime)");
+    effectiveActivity(); toast("有效活动 detected · 久坐已复位"); render(false); return;
+  }
+  if(S.resetPending){
+    S.resetSteps += n;
+    if(S.resetSteps >= 30) effectiveActivity();
+    else log("复位进度 "+S.resetSteps+"/30 步","var(--amber)");
+  } else if(n>=30) effectiveActivity();
+  else log("计步 +"+n+" → 累计 "+fmt(S.steps)+" 步");
+  render(false);
+}
+function fireAlert(){
+  if(S.alertOpen) return;
+  if(!S.worn){ toast("未佩戴，不触发提醒"); return; }
+  if(S.quiet){ toast("免打扰时段（22:00–07:00），不触发提醒"); return; }
+  S.sitMin = Math.max(S.sitMin, S.threshold);
+  S.alertOpen = true; S.sm = "Alerting"; S.alertCount++;
+  log("⚠ 久坐达阈值 → 马达 2s×3 + 全屏弹窗","var(--red)");
+  const d = $("#device"); d.classList.remove("shake"); void d.offsetWidth; d.classList.add("shake");
+  render(false);
+}
+function gotUp(){
+  if(!S.alertOpen) return;
+  S.alertOpen = false; S.resetPending = true; S.resetSteps = 0; S.sm = "Sitting";
+  log("用户选择「已起身」→ 待走 30 步复位","var(--amber)");
+  toast("已起身 · 请走 30 步完成复位"); render(false);
+}
+function snooze(){
+  if(!S.alertOpen) return;
+  if(S.snoozeCount >= 3){ toast("稍后次数已用尽，请起身活动"); return; }
+  S.snoozeCount++; S.snoozeRemain = 10; S.alertOpen = false; S.sm = "Snoozed";
+  log("用户选择「稍后 10 分钟」（"+S.snoozeCount+"/3 次）","var(--amber)");
+  toast("稍后 10 分钟" + (S.demo?"（Demo ≈ 10 秒）":"")); render(false);
+}
+function startMeasure(kind){
+  if(!S.worn){ S[kind+"State"]="S04"; render(false); toast("未佩戴，请先贴合佩戴"); return; }
+  S[kind+"State"]="S02"; S.measure={type:kind, remain:10};
+  log((kind==="hr"?"心率血氧":"体温")+"开始测量 · 10 s","var(--lime)");
+  render(false);
+}
+function tick(){
+  S.tick++;
+  if(S.screenOff || S.alertOpen || S.dialog){ if(S.tick%2===0) renderSide(); return; }
+  if(S.measure){
+    S.measure.remain--;
+    if(S.measure.remain<=0){
+      const t=S.measure.type; S.measure=null; S[t+"State"]="S01";
+      log((t==="hr"?"心率血氧":"体温")+"测量完成 · 信号良好","var(--lime)");
+      toast("测量完成 · 信号良好");
+    }
+  }
+  const dt = S.demo ? 1 : 1/60;
+  if(!S.worn){ S.sm="WearOff"; render(false); return; }
+  if(S.quiet){ S.sm="Quiet"; render(false); return; }
+  if(S.resetPending){ render(false); return; }
+  if(S.snoozeRemain > 0){
+    S.snoozeRemain -= dt;
+    if(S.snoozeRemain <= 0){ S.snoozeRemain = 0; fireAlert(); return; }
+    S.sm = "Snoozed";
+  } else {
+    S.sitMin += dt; S.sitTotal += dt;
+    if(S.sitMin >= S.threshold){ fireAlert(); return; }
+    S.sm = S.sitMin > 0.1 ? "Sitting" : "Active";
+  }
+  render(false);
+}
+
+/* ---------------- 页面切换 ---------------- */
+function goPage(i, animate){
+  if(S.alertOpen){ toast("提醒未处理：请先选择「已起身」或「稍后」"); return; }
+  if(S.dialog){ closeDialog(); }
+  if(S.screenOff) wake();
+  S.page = (i+6)%6;
+  render(animate!==false);
+  log("切页 → "+pad(S.page+1)+" "+PAGES[S.page].name,"var(--muted)");
+}
+function next(){ goPage(S.page+1); }
+function prev(){ goPage(S.page-1); }
+function sleep(){ S.screenOff = true; renderScreenOff(); log("长按 2s → 熄屏（仅关闭背光）","var(--muted)"); }
+function wake(){ S.screenOff = false; renderScreenOff(); log("抬腕 / 点击 → 唤醒","var(--muted)"); }
+
+/* ---------------- 设置动作 ---------------- */
+function setThreshold(v){ S.threshold=v; S.setHalf=0; saveSettings(); log("久坐阈值设为 "+v+" min（已写入 NVS）","var(--lime)"); toast("阈值已保存："+v+" 分钟"); render(false); }
+function factoryReset(){
+  try{ localStorage.removeItem(KEY); }catch(e){}
+  Object.assign(S, DEFAULTS, {sitMin:0,sitTotal:126,alertCount:2,sm:"Active",worn:true,quiet:false,simHour:14,
+    snoozeCount:0,snoozeRemain:0,resetPending:false,resetSteps:0,alertOpen:false,screenOff:false,
+    setHalf:0,hrState:"S01",tempState:"S01",measure:null});
+  saveSettings(); log("恢复出厂设置完成（设置已重置并写回）","var(--red)"); toast("已恢复出厂设置"); render(false); renderPc();
+}
+
+/* ---------------- 页面级模态 ---------------- */
+function openModal(html){ $("#modalBox").innerHTML = html; $("#modalRoot").classList.add("show"); }
+function closeModal(){ $("#modalRoot").classList.remove("show"); }
+function confirmFactory(){
+  deviceConfirm({ title:"恢复出厂设置？", icon:IC.warn, danger:true, ok:"确认清空",
+    lines:["将清空全部本地记录与设置","此操作无法撤销，请确认后继续","教学原型 · 非医疗用途"],
+    onOk:factoryReset });
+}
+function pcConfirm(kind){
+  S.pcPending = kind;
+  const mouse = kind==="mouse";
+  openModal(`<h3>${mouse?"启用鼠标映射？":"启用健康问答？"}</h3>
+    <p>${mouse?"手环动作将控制电脑光标并触发点击，请先确认设备及当前位置。":"回答将基于所选设备与时间范围的本机归档数据，并附 RAG 检索来源。"}</p>
+    <p style="margin-top:8px;color:var(--amber)">教学演示，非医疗建议 · 数据仅来自本机归档 · 默认关闭、开启需确认</p>
+    <div class="m-btns"><button data-mact="close">取消</button><button class="go" data-mact="pc-yes">确认开启</button></div>`);
+}
+function showHelp(){
+  openModal(`<h3>操作说明 · Demo UI 展示（方案 B）</h3>
+  <ul>
+    <li><b>切页</b>：点屏幕按钮、下方「短按」，或按 <kbd>→</kbd> / <kbd>←</kbd>；六页环形循环。底部 6 个页点仅指示、不可点击。</li>
+    <li><b>计步</b>：运动页「+1 / +10 / 走 30 步」；走 30 步视为有效活动，久坐计时清零。「清零」需二次确认（UI-02-C01）。</li>
+    <li><b>测量五态</b>：心率血氧 / 体温页底部 S01–S05 状态预览可切换（结果 / 测量中 / 信号差 / 未佩戴 / 未启用）；「重新测量」触发 10 s 倒计时。</li>
+    <li><b>久坐闭环</b>：久坐页「立即触发提醒」→ 全屏弹窗 →「已起身」→ 走 30 步复位；或「稍后 10 分钟」（最多 3 次）。弹窗未处理不许切页。</li>
+    <li><b>设置上下半屏</b>：设置页底部可切 1/2 常规设置（亮度 / 阈值 / 震动 / 抬腕）与 2/2 连接与出厂（Wi-Fi 补传 / PC 状态 / 恢复出厂）。</li>
+    <li><b>二次确认</b>：步数清零、Wi-Fi 补传、恢复出厂、PC 鼠标映射均按设计稿给出确认覆盖层（UI-02-C01 / UI-06-C01 / UI-08 / UI-PC-03-C01）。</li>
+    <li><b>PC 管理端</b>：页面底部 1440×900 管理端，左侧三个 tab（设备概览 / 健康问答 / 鼠标映射）可切换；问答页附 RAG 来源与常驻免责声明。</li>
+    <li><b>设置持久化</b>：修改后写入 localStorage（模拟 NVS），刷新不丢；恢复出厂需二次确认。</li>
+    <li><b>Demo 加速</b>：1 秒 ≈ 1 分钟，默认阈值 45 min ≈ 45 秒触发；关掉则回到标准实时策略。</li>
+    <li><b>一键走查</b>：顶部按钮自动跑「看步数 → 被提醒 → 处理 → 走 30 步复位 → 设置阈值」(P0 验收 A-02)。</li>
+  </ul>
+  <p style="margin-top:10px;color:var(--amber)">本原型为教学演示，所有生理数值均为示意数据，非医疗用途。</p>
+  <div class="kbd-row"><kbd>→</kbd><kbd>←</kbd><kbd>空格</kbd><kbd>S</kbd><kbd>D</kbd><kbd>T</kbd><kbd>Esc</kbd></div>
+  <div class="m-btns"><button class="go" data-mact="close">知道了</button></div>`);
+}
+
+/* ---------------- 一键走查 A-02 ---------------- */
+const TOUR = [
+  {t:"① 看步数", d:"切到运动页，读取今日步数（UC-01）", run:()=>{ S.setHalf=0; goPage(1); S.flashSel="#bigSteps"; render(false); log("[走查] 看步数 "+fmt(S.steps)+" 步","var(--lime)"); }},
+  {t:"② 被提醒", d:"久坐计时达阈值，马达 + 全屏弹窗（UC-02）", run:()=>{ goPage(4); S.sitMin=S.threshold; S.quiet=false; S.worn=true; fireAlert(); log("[走查] 久坐提醒已弹出","var(--red)"); }},
+  {t:"③ 处理提醒", d:"用户选择「已起身」，进入待复位状态", run:()=>{ gotUp(); log("[走查] 已起身，等待走 30 步","var(--amber)"); }},
+  {t:"④ 走 30 步复位", d:"有效活动完成「察觉—提醒—反馈」闭环", run:()=>{ addSteps(30); goPage(4); S.flashSel=null; render(false); log("[走查] 走 30 步，久坐计时清零","var(--lime)"); }},
+  {t:"⑤ 设置阈值", d:"进入设置页，把久坐阈值改为 60 分钟（UC-03）", run:()=>{ goPage(5); setThreshold(60); log("[走查] 阈值改为 60 min 并写入 NVS","var(--lime)"); }},
+  {t:"⑥ 完成", d:"A-02 主流程走通：看步数 → 被提醒 → 设置阈值", run:()=>{ toast("✓ A-02 主流程走查完成"); log("[走查] A-02 主流程完成 ✓","var(--lime)"); }}
+];
+function startTour(){
+  stopTour();
+  S.tour = 0; $("#tourBar").classList.add("show");
+  $("#tourSteps").innerHTML = TOUR.map(()=>"<i></i>").join("");
+  runTourStep();
+}
+function runTourStep(){
+  if(S.tour===null || S.tour>=TOUR.length){ finishTour(); return; }
+  const i = S.tour, st = TOUR[i];
+  $("#tbTitle").textContent = st.t; $("#tbDesc").textContent = st.d;
+  [...$("#tourSteps").children].forEach((e,k)=>{ e.className = k<i?"done":(k===i?"cur":""); });
+  try{ st.run(); }catch(err){ log("[走查] 步骤异常："+err.message,"var(--red)"); }
+  S.tourTimers.push(setTimeout(()=>{ S.tour++; runTourStep(); }, 2400));
+}
+function finishTour(){
+  [...$("#tourSteps").children].forEach(e=>e.className="done");
+  S.tourTimers.push(setTimeout(stopTour, 1800));
+}
+function stopTour(){
+  S.tourTimers.forEach(clearTimeout); S.tourTimers=[]; S.tour=null;
+  $("#tourBar").classList.remove("show"); S.flashSel=null;
+}
+
+/* ---------------- 屏幕内交互 ---------------- */
+function handleAct(act, el){
+  switch(act){
+    case "step1": addSteps(1); break;
+    case "step10": addSteps(10); break;
+    case "walk30": addSteps(30); break;
+    case "sit5": S.sitMin += 5; S.sitTotal += 5; log("模拟静坐 +5 min → 累计 "+Math.floor(S.sitMin)+" min","var(--amber)"); render(false); break;
+    case "fireAlert": fireAlert(); break;
+    case "gotup": gotUp(); break;
+    case "standup":
+      if(S.alertOpen) gotUp();
+      else { S.sitMin=0; S.snoozeCount=0; S.snoozeRemain=0; if(S.worn) S.sm="Active"; log("「立即起身」→ 重置计时并记录反馈","var(--lime)"); toast("已记录反馈 · 计时重置"); render(false); }
+      break;
+    case "snooze": snooze(); break;
+    case "wake": wake(); break;
+    case "clearsteps":
+      deviceConfirm({ title:"清零当日步数？", ok:"确认清零",
+        lines:["当日步数及关联估算值将重置","历史日期的记录保持不变","教学原型 · 非医疗用途"],
+        onOk:()=>{ S.steps=0; log("当日步数已清零（历史记录保持不变）","var(--lime)"); toast("当日步数已清零"); render(false); renderPc(); } });
+      break;
+    case "remeasure": startMeasure(el.dataset.kind); break;
+    case "wearMeasure":
+      S.worn=true; log("检查佩戴完成 → 已贴合佩戴","var(--lime)"); startMeasure(el.dataset.kind); break;
+    case "mstate": {
+      const k=el.dataset.kind, v=el.dataset.v;
+      if(v==="S02"){ startMeasure(k); }
+      else { S[k+"State"]=v; if(S.measure && S.measure.type===k) S.measure=null; log((k==="hr"?"心率血氧":"体温")+"界面状态预览 → "+v+" "+MST_CN[v],"var(--muted)"); render(false); }
+      break;
+    }
+    case "bri-": S.brightness=clamp(S.brightness-10,30,100); saveSettings(); log("亮度 → "+S.brightness+"%","var(--muted)"); render(false); break;
+    case "bri+": S.brightness=clamp(S.brightness+10,30,100); saveSettings(); log("亮度 → "+S.brightness+"%","var(--muted)"); render(false); break;
+    case "th30": setThreshold(30); break;
+    case "th45": setThreshold(45); break;
+    case "th60": setThreshold(60); break;
+    case "vib": S.vibration=el.dataset.v; saveSettings(); log("震动强度 → "+S.vibration,"var(--muted)"); render(false); break;
+    case "raise": S.raiseWake=!S.raiseWake; saveSettings(); log("抬腕亮屏 → "+(S.raiseWake?"开启":"关闭"),"var(--muted)"); render(false); break;
+    case "demo": S.demo=!S.demo; saveSettings(); log("策略 → "+(S.demo?"Demo 加速":"Standard 实时"),"var(--amber)"); toast(S.demo?"Demo 加速：1 秒 ≈ 1 分钟":"标准实时策略"); render(false); break;
+    case "half": S.setHalf=+el.dataset.v; render(false); log("设置半屏 → "+(S.setHalf+1)+"/2","var(--muted)"); break;
+    case "wifi":
+      if(!S.wifi){
+        deviceConfirm({ title:"开启 Wi-Fi 补传？", ok:"确认开启",
+          lines:["允许通过 Wi-Fi 补传本地记录","开启后将保存此设置","教学原型 · 非医疗用途"],
+          onOk:()=>{ S.wifi=true; saveSettings(); log("Wi-Fi 补传已开启（设置已保存）","var(--lime)"); toast("Wi-Fi 补传已开启"); render(false); } });
+      } else { S.wifi=false; saveSettings(); log("Wi-Fi 补传已关闭","var(--muted)"); render(false); }
+      break;
+    case "goPc": S.pcTab=2; renderPc(); $("#pcSection").scrollIntoView({behavior:"smooth",block:"start"}); log("跳转 PC 管理端 · 鼠标映射","var(--lime)"); break;
+    case "factory": confirmFactory(); break;
+    case "dlg-cancel": closeDialog(); break;
+    case "dlg-ok": { const f=S.dialog && S.dialog.onOk; closeDialog(); if(f) f(); break; }
+  }
+}
+$("#screen").addEventListener("click", e=>{
+  const b = e.target.closest("[data-act]"); if(b) { handleAct(b.dataset.act, b); return; }
+});
+
+document.querySelectorAll("[data-hw]").forEach(b=>b.addEventListener("click", ()=>{
+  switch(b.dataset.hw){
+    case "short": next(); break;
+    case "prev": prev(); break;
+    case "long": sleep(); break;
+    case "long5": S.alertOpen=false; S.screenOff=false; goPage(0); log("长按 5s → 返回表盘（根页面）","var(--muted)"); break;
+    case "wake": wake(); break;
+  }
+}));
+document.querySelectorAll("[data-sim]").forEach(b=>b.addEventListener("click", ()=>{
+  switch(b.dataset.sim){
+    case "step1": addSteps(1); break;
+    case "step10": addSteps(10); break;
+    case "walk30": addSteps(30); break;
+    case "sit5": S.sitMin+=5; S.sitTotal+=5; render(false); break;
+    case "fire": S.quiet=false; S.worn=true; fireAlert(); break;
+    case "quiet": S.quiet=true; S.simHour=22; S.sm="Quiet"; log("演示时钟 → 22:00，进入免打扰 Quiet 态","var(--amber)"); toast("已进入免打扰（22:00–07:00）"); render(false); break;
+    case "day": S.quiet=false; S.simHour=14; S.sm="Active"; log("演示时钟 → 14:00，退出免打扰","var(--amber)"); render(false); break;
+    case "wear": S.worn=!S.worn; log("佩戴状态 → "+(S.worn?"佩戴中":"未佩戴"),"var(--muted)"); render(false); break;
+    case "demo": handleAct("demo",{}); break;
+    case "reset": Object.assign(S,{sitMin:0,snoozeCount:0,snoozeRemain:0,resetPending:false,resetSteps:0,alertOpen:false,sm:"Active",screenOff:false,measure:null,hrState:"S01",tempState:"S01"}); log("运行时状态已重置（设置保留）","var(--muted)"); render(false); break;
+  }
+}));
+$("#gallery").addEventListener("click", e=>{
+  const c = e.target.closest("[data-page]"); if(c) goPage(+c.dataset.page);
+});
+
+/* ---------------- PC 管理端交互 ---------------- */
+$("#pcCanvas").addEventListener("click", e=>{
+  const b = e.target.closest("[data-pact]"); if(!b) return;
+  const p = b.dataset.pact;
+  if(p==="tab"){ S.pcTab=+b.dataset.tab; renderPc(); log("PC 管理端 → "+["设备概览","健康问答","鼠标映射"][S.pcTab],"var(--lime)"); }
+  else if(p==="qa"){ if(!S.qa) pcConfirm("qa"); else { S.qa=false; saveSettings(); renderPc(); log("PC 健康问答已关闭","var(--muted)"); } }
+  else if(p==="mouse"){ if(!S.mouse) pcConfirm("mouse"); else { S.mouse=false; saveSettings(); renderPc(); log("PC 鼠标映射已关闭","var(--muted)"); } }
+  else if(p==="export"){ toast("导出前提示：仅用于教学 · 问答导出包含来源与免责声明"); log("导出 CSV（演示）→ 仅用于教学","var(--lime)"); }
+  else if(p==="ask"){
+    const inp=$("#pcAsk"); const q=inp?inp.value.trim():"";
+    toast("已按所选范围检索本机归档 · 见来源 01");
+    log("PC 健康问答："+(q||"今天久坐了多久？")+" → 依据 来源 01 · records","var(--lime)");
+  }
+  else if(p==="clear"){ const inp=$("#pcAsk"); if(inp) inp.value=""; toast("会话已清空"); log("PC 健康问答会话已清空","var(--muted)"); }
+  else if(p==="calib"){ toast("请保持静止 3 s · 设定中立姿态"); log("鼠标映射校准（演示）","var(--lime)"); }
+});
+$("#pcCanvas").addEventListener("keydown", e=>{
+  if(e.key==="Enter" && e.target.id==="pcAsk"){ e.preventDefault();
+    toast("已按所选范围检索本机归档 · 见来源 01"); log("PC 健康问答（回车发送）→ 依据 来源 01","var(--lime)"); }
+});
+$("#modalRoot").addEventListener("click", e=>{
+  if(e.target.id==="modalRoot"){ closeModal(); return; }
+  const b = e.target.closest("[data-mact]"); if(!b) return;
+  if(b.dataset.mact==="close") closeModal();
+  if(b.dataset.mact==="factory-yes"){ closeModal(); factoryReset(); }
+  if(b.dataset.mact==="pc-yes"){
+    closeModal(); const k=S.pcPending; S.pcPending=null;
+    if(k==="qa"){ S.qa=true; log("PC 健康问答已启用（附 RAG 来源）","var(--lime)"); }
+    else { S.mouse=true; log("PC 鼠标映射已启用 · BLE HID","var(--lime)"); }
+    saveSettings(); renderPc(); toast("已开启 · 教学演示，非医疗建议");
+  }
+});
+$("#btnTour").addEventListener("click", startTour);
+$("#btnTourStop").addEventListener("click", stopTour);
+$("#btnHelp").addEventListener("click", showHelp);
+document.addEventListener("keydown", e=>{
+  if(e.target.tagName==="INPUT") return;
+  if(e.key==="ArrowRight"){ e.preventDefault(); next(); }
+  else if(e.key==="ArrowLeft"){ e.preventDefault(); prev(); }
+  else if(e.key===" "){ e.preventDefault(); addSteps(30); }
+  else if(e.key.toLowerCase()==="s"){ S.screenOff?wake():sleep(); }
+  else if(e.key.toLowerCase()==="d"){ handleAct("demo",{}); }
+  else if(e.key.toLowerCase()==="t"){ S.tour===null?startTour():stopTour(); }
+  else if(e.key==="Escape"){ closeModal(); stopTour(); }
+});
+
+/* ---------------- 自适应缩放 ---------------- */
+function fit(){
+  const wrap = $("#deviceWrap"), scale = $("#deviceScale");
+  /* 竖屏 360×720：按舞台宽 + 可用高度双约束缩放，且上限 0.82 让整台手环「小一点」 */
+  const availH = Math.max(420, window.innerHeight - 260);
+  const s = Math.min(0.82, (wrap.clientWidth-8)/360, availH/832);
+  scale.style.transform = "scale("+s+")";
+  wrap.style.height = (scale.offsetHeight * s + 4) + "px";
+}
+function fitPc(){
+  const f=$("#pcFrame"), c=$("#pcCanvas");
+  const s=f.clientWidth/1440;
+  c.style.transform = "scale("+s+")";
+  f.style.height = (900*s)+"px";
+}
+window.addEventListener("resize", ()=>{ fit(); fitPc(); });
+
+/* ---------------- 启动 ---------------- */
+render(false);
+renderPc();
+fit();
+fitPc();
+log("Demo 启动 · 方案 B（纯黑 + 青柠绿活力环）· 设置已从 NVS 载入","var(--lime)");
+log("策略："+(S.demo?"Demo 加速（1s≈1min）":"Standard 实时")+" · 阈值 "+S.threshold+" min","var(--muted)");
+setInterval(tick, 1000);
+</script>
+</body>
+</html>

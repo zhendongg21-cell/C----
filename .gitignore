@@ -1,0 +1,14 @@
+# ===== 项目根仓库：只跟踪顶层交付物 =====
+# health-band/ 是独立 Git 仓库（自带 .git，保留其 3 次提交历史），本仓库不重复跟踪
+health-band/
+
+# ===== 临时 / 缓存 / 锁文件 =====
+__pycache__/
+*.py[cod]
+~$*
+*.tmp
+*.bak
+*.orig
+*.log
+.DS_Store
+Thumbs.db
