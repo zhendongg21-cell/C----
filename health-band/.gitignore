@@ -1,0 +1,59 @@
+# ===== ESP-IDF 构建产物 =====
+build/
+sdkconfig
+sdkconfig.old
+sdkconfig.defaults.old
+*.o
+*.obj
+*.elf
+*.bin
+*.map
+*.a
+*.d
+compile_commands.json
+managed_components/
+dependencies.lock
+
+# ===== Python / 工具临时 =====
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# ===== IDE / 系统 =====
+.vscode/*
+!.vscode/settings.json.example
+!.vscode/tasks.json.example
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ===== Office / Word 临时锁文件 =====
+~$*
+
+# ===== 临时文件 =====
+*.tmp
+*.log
+!test/records/*.log
+
+# ===== 密钥与本地凭据（协议要求：不保存 Wi-Fi 密码明文） =====
+*.pem
+*.key
+secrets.*
+secrets/
+wifi_credentials.*
+*_secret.*
+.env
+.env.*
+
+# ===== 大体积原始数据（只提交样例，不放全量回放数据） =====
+tools/data/*.csv
+tools/data/*.bin
+!tools/data/sample_*.csv
+
+# ===== 图集自动保存临时（draw.io 会话文件不入库） =====
+*.drawio.bak
